@@ -79,7 +79,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
 
     LibeventReactor() {
         libevent_init_once();
-        evbase.reset(event_base_new());
+        evbase.underlying().reset(event_base_new());
         if (evbase.get() == nullptr) {
             throw std::runtime_error("event_base_new");
         }

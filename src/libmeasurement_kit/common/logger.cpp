@@ -172,7 +172,7 @@ class DefaultLogger : public Logger, public NonCopyable, public NonMovable {
 
     void set_logfile(std::string path) override {
         std::unique_lock<std::recursive_mutex> _{mutex_};
-        ofile_.reset(new std::ofstream(path));
+        ofile_.underlying().reset(new std::ofstream{path});
         // TODO: what to do if we cannot open the logfile? return error?
     }
 
