@@ -28,7 +28,7 @@ class UniquePtr {
     }
 
     /// The star operator returns a reference to the underlying structure.
-    typename std::add_lvalue_reference<T>::type operator*() const {
+    typename std::add_lvalue_reference<Type>::type operator*() const {
         if (ptr_.get() == nullptr) {
             throw std::runtime_error("null pointer");
         }
@@ -36,7 +36,7 @@ class UniquePtr {
     }
 
     /// The arrow operator is an alias for get().
-    typename std::add_pointer<T>::type operator->() const { return get(); }
+    typename std::add_pointer<Type>::type operator->() const { return get(); }
 
     /// The release() method returns the underlying pointer and replaces the
     /// underlying pointer with nullptr. This is the way to extract the pointer
@@ -55,7 +55,7 @@ class UniquePtr {
     operator bool() const { return static_cast<bool>(ptr_); }
 
     /// The constructor with pointer takes ownership of the pointer argument.
-    UniquePtr(typename std::add_pointer<Type>::type p) : ptr_{p} {}
+    explicit UniquePtr(typename std::add_pointer<Type>::type p) : ptr_{p} {}
 
     /// The default constructor constructs an empty pointer.
     UniquePtr() {}
