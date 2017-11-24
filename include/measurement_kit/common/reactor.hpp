@@ -11,6 +11,8 @@
 #include <measurement_kit/common/shared_ptr.hpp>
 #include <measurement_kit/common/socket.hpp>
 
+#include <measurement_kit/net/datagram.hpp>
+
 struct event_base;
 
 namespace mk {
@@ -145,6 +147,9 @@ class Reactor {
     // see the real content of DNS queries, we cannot see retransmissions as
     // we're not the kernel, etc.
     virtual void with_current_data_usage(Callback<DataUsage &> &&cb) = 0;
+
+    /// `make_datagram_socket` creates a new datagram socket.
+    virtual net::datagram::Socket make_datagram_socket(int family) = 0;
 };
 
 } // namespace mk
