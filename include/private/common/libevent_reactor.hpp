@@ -18,8 +18,8 @@
 #include <measurement_kit/common/callback.hpp>   // for mk::Callback
 #include <measurement_kit/common/data_usage.hpp> // for mk::DataUsage
 #include <measurement_kit/common/enable_shared_from_this.hpp>
-#include <measurement_kit/common/error.hpp>                   // for mk::Error
-#include <measurement_kit/common/logger.hpp>                  // for mk::warn
+#include <measurement_kit/common/error.hpp>        // for mk::Error
+#include <measurement_kit/common/logger.hpp>       // for mk::warn
 #include <measurement_kit/common/non_copyable.hpp> // for mk::NonCopyable
 #include <measurement_kit/common/non_movable.hpp>  // for mk::NonMovable
 #include <measurement_kit/common/reactor.hpp>      // for mk::Reactor
@@ -79,10 +79,12 @@ class FdDeleter {
 // probably to pass `this` to some libevent functions, and that anyway it is
 // always used as mk::SharedPtr<mk::Reactor>, it seems more robust to keep it
 // explicitly non-copyable and non-movable.
-//
-// TODO: add more mocks
 template <MK_MOCK(event_base_new), MK_MOCK(event_base_once),
-        MK_MOCK(event_base_dispatch), MK_MOCK(event_base_loopbreak)>
+        MK_MOCK(event_base_dispatch), MK_MOCK(event_base_loopbreak),
+        MK_MOCK(evutil_closesocket), MK_MOCK_AS(::connect, sys_connect),
+        MK_MOCK_AS(recvfrom, sys_recvfrom), MK_MOCK(event_del),
+        MK_MOCK(event_add), MK_MOCK_AS(sendto, sys_sendto), MK_MOCK(event_new),
+        MK_MOCK(evutil_make_socket_nonblocking)>
 class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
   public:
     // ## Initialization
@@ -187,8 +189,9 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
 
     // ## Datagram sockets
 
-    class DatagramSocket : public net::datagram::Socket::Impl,
-                           public EnableSharedFromThis<DatagramSocket> {
+    class DatagramSocket
+        : public net::datagram::Socket::Impl,
+          public EnableSharedFromThis<net::datagram::Socket::Impl> {
       public:
         Error close() override {
             std::unique_lock<std::recursive_mutex> _{mutex};
@@ -222,7 +225,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
                 }
             }
             net::clear_last_error();
-            (void)connect(*fd, (sockaddr *)storage, sslen);
+            (void)sys_connect(*fd, (sockaddr *)storage, sslen);
             return net::get_last_error();
         }
 
@@ -252,7 +255,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
                 net::clear_last_error();
                 sockaddr_storage storage{};
                 socklen_t sslen{};
-                auto rv = recvfrom(*fd, buffer, sizeof(buffer), 0,
+                auto rv = sys_recvfrom(*fd, buffer, sizeof(buffer), 0,
                         (sockaddr *)&storage, &sslen);
                 if (rv < 0) {
                     auto err = net::get_last_error();
@@ -336,8 +339,8 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
                 }
             }
             net::clear_last_error();
-            auto count = sendto(*fd, binary_data.data(), binary_data.size(), 0,
-                    (sockaddr *)dest, sslen);
+            auto count = sys_sendto(*fd, binary_data.data(), binary_data.size(),
+                    0, (sockaddr *)dest, sslen);
             auto err = net::get_last_error();
             if (!err && count != binary_data.size()) {
                 // TODO(sbs): figure out whether this can really happen
@@ -369,7 +372,8 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
                 }
                 fd.reset(new evutil_socket_t{sd});
             }
-            evp.reset(event_new(evbase, *fd, EV_READ, mk_datagram_read, this));
+            evp.reset(event_new(reactor->evbase.get(), *fd, EV_READ,
+                    mk_datagram_read, this));
             if (!evp) {
                 throw std::runtime_error("event_new");
             }
@@ -399,15 +403,14 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
         // `EnableSharedFromThis` trick when we close the socket.
         SharedPtr<net::datagram::Socket::Impl> pimpl{
                 std::make_shared<DatagramSocket>(this, family)};
-        net::datagram::Socket dsock{pimpl};
         std::unique_lock<std::recursive_mutex> _{mutex};
         active_datagram_sockets.insert(pimpl);
-        return dsock;
+        return net::datagram::Socket{std::move(pimpl)};
     }
 
     // This method is not part of the public API and is called by the
     // datagram socket to cancel itself.
-    void close_datagram_socket(SharedPtr<DatagramSocket> so) {
+    void close_datagram_socket(SharedPtr<net::datagram::Socket::Impl> so) {
         std::unique_lock<std::recursive_mutex> _{mutex};
         active_datagram_sockets.erase(so);
     }
@@ -449,7 +452,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
   private:
     // ## Private attributes
 
-    std::set<SharedPtr<DatagramSocket>> active_datagram_sockets;
+    std::set<SharedPtr<net::datagram::Socket::Impl>> active_datagram_sockets;
     UniquePtr<event_base, EventBaseDeleter> evbase;
     DataUsage data_usage;
     std::recursive_mutex mutex;
@@ -470,6 +473,6 @@ static inline void mk_datagram_read(
     auto ptr = static_cast<LibeventReactor<>::DatagramSocket *>(opaque);
     // Make sure the object lifecycle is such that it reaches end of the scope.
     auto raii = ptr->shared_from_this();
-    raii->read_cb(evflags);
+    raii.as<LibeventReactor<>::DatagramSocket>()->read_cb(evflags);
 }
 #endif
