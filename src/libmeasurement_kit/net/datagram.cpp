@@ -11,18 +11,7 @@ namespace mk {
 namespace net {
 namespace datagram {
 
-Error Socket::close() {
-    // We promised in the documentation that calling `close` has the same
-    // semantics of calling `reset` on a shared pointer.
-    // FIXME: this is VERY wrong!!!
-    auto raii = std::swap(pimpl);
-    auto err = NoError();
-    // We promised in the documentation that `close` is idempotent.
-    if (raii) {
-        err = raii->close();
-    }
-    return err;
-}
+Error Socket::close() { return pimpl->close(); }
 
 Error Socket::connect(sockaddr_storage *storage) {
     return pimpl->connect(storage);
@@ -38,8 +27,8 @@ void Socket::on_datagram(
     pimpl->on_datagram(std::move(cb));
 }
 
-void Socket::on_error(std::function<void(Error &&)> &&cb) {
-    pimpl->on_error(std::move(cb))l
+void Socket::on_error(std::function<void(Error)> &&cb) {
+    pimpl->on_error(std::move(cb));
 }
 
 void Socket::on_timeout(std::function<void()> &&cb) {
@@ -58,9 +47,8 @@ void Socket::set_timeout(uint32_t millisec) {
     pimpl->set_timeout(millisec);
 }
 
-Socket::~Impl() override {}
+Socket::Impl::~Impl() {}
 
 } // namespace datagram
 } // namespace net
 } // namespace mk
-#endif

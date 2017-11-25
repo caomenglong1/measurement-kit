@@ -195,15 +195,33 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
       public:
         Error close() override {
             std::unique_lock<std::recursive_mutex> _{mutex};
+            // We promised in the documentation that calling `close` has the
+            // semantics of calling `reset` on a shared pointer. To do this we
+            // clear all the function lists, and reset all pointers.
+            auto cbs = std::move(close_cbs); // Needed later
+            datagram_cbs.clear();
+            error_cbs.clear();
             evp.reset();
             net::clear_last_error();
             (void)evutil_closesocket(*fd);
             auto err = net::get_last_error();
-            *fd = -1;
-            owner->close_datagram_socket(shared_from_this());
-            auto cbs = std::move(close_cbs);
+            fd.reset();
+            io_state = 0;
+            timeout_cbs.clear();
+            // We promised idempotent execution in the docs. Yet, if one closes,
+            // then registers new close handlers, then calls close again, we
+            // probably want to emit the event again for correctness, so that
+            // these new close handlers would actually run.
+            // TODO(sbs): document this behavior.
             for (auto &cb : cbs) {
                 cb();
+            }
+            // For correctness, do not notify the reactor that we're closed
+            // more than once. TODO(sbs): this can be reimplemented using the
+            // close handlers rather than a specific pointer.
+            if (owner) {
+                owner->close_datagram_socket(shared_from_this());
+                owner = nullptr;
             }
             return err;
         }
@@ -291,7 +309,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
             datagram_cbs.push_back(std::move(cb));
         }
 
-        void on_error(std::function<void(Error &&)> &&cb) override {
+        void on_error(std::function<void(Error)> &&cb) override {
             std::unique_lock<std::recursive_mutex> _{mutex};
             error_cbs.push_back(std::move(cb));
         }
@@ -342,7 +360,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
             auto count = sys_sendto(*fd, binary_data.data(), binary_data.size(),
                     0, (sockaddr *)dest, sslen);
             auto err = net::get_last_error();
-            if (!err && count != binary_data.size()) {
+            if (!err && count >= 0 && (size_t)count != binary_data.size()) {
                 // TODO(sbs): figure out whether this can really happen
                 err = net::MessageSizeError();
             }
@@ -388,7 +406,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
         std::list<std::function<void(
                 const void *, size_t, const sockaddr_storage *)>>
                 datagram_cbs;
-        std::list<std::function<void(Error &&)>> error_cbs;
+        std::list<std::function<void(Error)>> error_cbs;
         UniquePtr<event, EventDeleter> evp;
         UniquePtr<evutil_socket_t, FdDeleter> fd;
         short io_state = 0;

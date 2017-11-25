@@ -354,5 +354,21 @@ Error make_sockaddr(std::string s, uint16_t p, sockaddr_storage *ss,
     return err;
 }
 
+Error get_last_error() {
+#ifdef _WIN32
+    return map_errno(WSAGetLastError());
+#else
+    return map_errno(errno);
+#endif
+}
+
+void clear_last_error() {
+#ifdef _WIN32
+    WSASetLastError(0);
+#else
+    errno = 0;
+#endif
+}
+
 } // namespace net
 } // namespace mk

@@ -87,7 +87,7 @@ class Socket {
     /// `on_error` registers the callback(s) called when there is an
     /// error while reading from the socket. After this event, call resume()
     /// if you want to start reading again.
-    void on_error(std::function<void(Error &&)> &&cb);
+    void on_error(std::function<void(Error)> &&cb);
 
     /// `on_timeout` registers the callback(s) called when there is a timeout
     /// receiving data from the socket. After this event, call resume() if you

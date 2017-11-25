@@ -88,6 +88,22 @@ MK_NET_ERRORS_XX
 MK_DEFINE_ERR(MK_ERR_NET(58), SslDirtyShutdownError, "ssl_dirty_shutdown")
 MK_DEFINE_ERR(MK_ERR_NET(59), SslMissingHostnameError, "ssl_missing_hostname")
 
+/// `get_last_error` returns the latest thread-local network error. On Unix, we
+/// use the thread local `errno` variable (["POSIX.1c redefines errno as a
+/// service that can access the per-thread error number"](
+/// http://www.unix.org/whitepapers/reentrant.html)). On Windows we use the
+/// thread-local `WSAGetLastError` function (["The return value indicates the
+/// error code for this thread's last Windows Sockets operation that failed."](
+/// https://msdn.microsoft.com/en-us/library/windows/desktop/ms741580(v=vs.85).aspx)).
+/// The expected usage is that you would `clear_last_error` prior to invoking
+/// a socket API directly, then you would retrieve the error that may have
+/// occurred right after the socket API call using `get_last_error`.
+Error get_last_error();
+
+/// `clear_last_error` clears the latest thread-local network error. We use
+/// `errno` on Unix and `WSASetLastError` on Windows.
+void clear_last_error();
+
 } // namespace net
 } // namespace mk
 #endif

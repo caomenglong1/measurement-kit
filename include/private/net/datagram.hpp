@@ -25,7 +25,7 @@ class Socket::Impl {
     virtual void on_datagram(std::function<void(const void *, size_t,
             const sockaddr_storage *)> &&cb) = 0;
 
-    virtual void on_error(std::function<void(Error &&)> &&cb) = 0;
+    virtual void on_error(std::function<void(Error)> &&cb) = 0;
 
     virtual void on_timeout(std::function<void()> &&cb) = 0;
 
