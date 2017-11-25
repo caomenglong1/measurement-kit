@@ -6,30 +6,31 @@
 
 // # Libevent Reactor
 
-#include <event2/event.h>                           // for event_base_*
-#include <event2/thread.h>                          // for evthread_use_*
-#include <event2/util.h>                            // for evutil_socket_t
-#include <signal.h>                                 // for sigaction
-#include <cassert>                                  // for assert
-#include <measurement_kit/common/callback.hpp>      // for mk::Callback
-#include <measurement_kit/common/data_usage.hpp>    // for mk::DataUsage
-#include <measurement_kit/common/error.hpp>         // for mk::Error
-#include <measurement_kit/common/logger.hpp>        // for mk::warn
-#include <measurement_kit/common/non_copyable.hpp>  // for mk::NonCopyable
-#include <measurement_kit/common/non_movable.hpp>   // for mk::NonMovable
-#include <measurement_kit/common/reactor.hpp>       // for mk::Reactor
-#include <measurement_kit/common/socket.hpp>        // for mk::socket_t
-#include <measurement_kit/common/unique_ptr.hpp>    // for mk::UniquePtr
-#include <measurement_kit/net/error.hpp>            // for mk::net::*Error
-#include <mutex>                                    // for std::recursive_mutex
-#include <set>                                      // for std::set
-#include <stdexcept>                                // for std::runtime_error
-#include <utility>                                  // for std::move
-#include "private/common/locked.hpp"                // for mk::locked_global
-#include "private/common/mock.hpp"                  // for MK_MOCK
-#include "private/common/utils.hpp"                 // for mk::timeval_init
-#include "private/common/worker.hpp"                // for mk::Worker
-#include "private/net/datagram.hpp"                 // for mk::Worker
+#include "private/common/locked.hpp"             // for mk::locked_global
+#include "private/common/mock.hpp"               // for MK_MOCK
+#include "private/common/utils.hpp"              // for mk::timeval_init
+#include "private/common/worker.hpp"             // for mk::Worker
+#include "private/net/datagram.hpp"              // for datagram::Socket
+#include <cassert>                               // for assert
+#include <event2/event.h>                        // for event_base_*
+#include <event2/thread.h>                       // for evthread_use_*
+#include <event2/util.h>                         // for evutil_socket_t
+#include <measurement_kit/common/callback.hpp>   // for mk::Callback
+#include <measurement_kit/common/data_usage.hpp> // for mk::DataUsage
+#include <measurement_kit/common/enable_shared_from_this.hpp>
+#include <measurement_kit/common/error.hpp>                   // for mk::Error
+#include <measurement_kit/common/logger.hpp>                  // for mk::warn
+#include <measurement_kit/common/non_copyable.hpp> // for mk::NonCopyable
+#include <measurement_kit/common/non_movable.hpp>  // for mk::NonMovable
+#include <measurement_kit/common/reactor.hpp>      // for mk::Reactor
+#include <measurement_kit/common/socket.hpp>       // for mk::socket_t
+#include <measurement_kit/common/unique_ptr.hpp>   // for mk::UniquePtr
+#include <measurement_kit/net/error.hpp>           // for mk::net::*Error
+#include <mutex>                                   // for std::recursive_mutex
+#include <set>                                     // for std::set
+#include <signal.h>                                // for sigaction
+#include <stdexcept>                               // for std::runtime_error
+#include <utility>                                 // for std::move
 
 extern "C" {
 static inline void mk_pollfd_cb(evutil_socket_t, short, void *);
@@ -40,7 +41,7 @@ namespace mk {
 
 // Deleter for an event_base pointer.
 class EventBaseDeleter {
-   public:
+  public:
     void operator()(event_base *evbase) {
         if (evbase != nullptr) {
             event_base_free(evbase);
@@ -50,7 +51,7 @@ class EventBaseDeleter {
 
 // Deleter for an event pointer.
 class EventDeleter {
-   public:
+  public:
     void operator()(event *evp) {
         if (evp != nullptr) {
             event_free(evp);
@@ -60,10 +61,12 @@ class EventDeleter {
 
 // Deleter for a file descriptor pointer.
 class FdDeleter {
-   public:
+  public:
     void operator()(evutil_socket_t *fd) {
-        if (fd != nullptr) {
-            if (*fd != -1) (void)evutil_closesocket(*fd);
+        if (fd) {
+            if (*fd != -1) {
+                (void)evutil_closesocket(*fd);
+            }
             delete fd;
         }
     }
@@ -81,7 +84,7 @@ class FdDeleter {
 template <MK_MOCK(event_base_new), MK_MOCK(event_base_once),
         MK_MOCK(event_base_dispatch), MK_MOCK(event_base_loopbreak)>
 class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
-   public:
+  public:
     // ## Initialization
 
     template <MK_MOCK(evthread_use_pthreads), MK_MOCK(sigaction)>
@@ -184,10 +187,9 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
 
     // ## Datagram sockets
 
-    class LibeventDatagramSocket
-        : public net::datagram::Socket::Impl,
-          public std::enable_shared_from_this<LibeventDatagramSocket> {
-       public:
+    class DatagramSocket : public net::datagram::Socket::Impl,
+                           public EnableSharedFromThis<DatagramSocket> {
+      public:
         Error close() override {
             std::unique_lock<std::recursive_mutex> _{mutex};
             evp.reset();
@@ -197,14 +199,17 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
             *fd = -1;
             owner->close_datagram_socket(shared_from_this());
             auto cbs = std::move(close_cbs);
-            for (auto &cb : cbs) cb();
+            for (auto &cb : cbs) {
+                cb();
+            }
             return err;
         }
 
         Error connect(sockaddr_storage *storage) override {
             std::unique_lock<std::recursive_mutex> _{mutex};
             socklen_t sslen{};
-            switch (storage->ss_family) {
+            if (storage) {
+                switch (storage->ss_family) {
                 case AF_INET:
                     sslen = sizeof(sockaddr_in);
                     break;
@@ -212,8 +217,9 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
                     sslen = sizeof(sockaddr_in6);
                     break;
                 default:
-                    throw std::runtime_error("invalid_family");
+                    return ValueError();
                     // NOTREACHED
+                }
             }
             net::clear_last_error();
             (void)connect(*fd, (sockaddr *)storage, sslen);
@@ -228,16 +234,20 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
         void read_cb(short evflags) {
             std::unique_lock<std::recursive_mutex> _{mutex};
             if ((evflags & EV_TIMEOUT) != 0) {
-                pause();  // TODO(sbs): is this call needed?
+                pause(); // Important: needed to update io_state
                 auto cbs = std::move(timeout_cbs);
-                for (auto &cb : cbs) cb();
-                if (!timeout_cbs.empty()) cbs.splice(cbs.end(), timeout_cbs);
+                for (auto &cb : cbs) {
+                    cb();
+                }
+                if (!timeout_cbs.empty()) {
+                    cbs.splice(cbs.end(), timeout_cbs);
+                }
                 timeout_cbs = std::move(cbs);
                 return;
             }
             assert((evflags & EV_WRITE) == 0);
             assert((evflags & EV_READ) != 0);
-            constexpr auto maxreads = 7;  // Eventually stop reading
+            constexpr auto maxreads = 7; // Eventually stop reading
             for (auto i = 0; i < maxreads; ++i) {
                 net::clear_last_error();
                 sockaddr_storage storage{};
@@ -247,18 +257,27 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
                 if (rv < 0) {
                     auto err = net::get_last_error();
                     if (err == net::OperationWouldBlockError()) {
-                        break;  // Read again later
+                        break; // Read again later
                     }
                     pause();
                     auto cbs = std::move(error_cbs);
-                    for (auto &cb : cbs) cb(err);
-                    if (!error_cbs.empty()) cbs.splice(cbs.end(), error_cbs);
+                    for (auto &cb : cbs) {
+                        cb(err);
+                    }
+                    if (!error_cbs.empty()) {
+                        cbs.splice(cbs.end(), error_cbs);
+                    }
                     error_cbs = std::move(cbs);
                     return;
                 }
                 auto cbs = std::move(datagram_cbs);
-                for (auto &cb : cbs) cb(buffer, (size_t)rv, &storage);
-                if (!datagram_cbs.empty()) cbs.splice(cbs.end(), datagram_cbs);
+                for (auto &cb : cbs) {
+                    // Cast safe because negative case excluded above
+                    cb(buffer, (size_t)rv, &storage);
+                }
+                if (!datagram_cbs.empty()) {
+                    cbs.splice(cbs.end(), datagram_cbs);
+                }
                 datagram_cbs = std::move(cbs);
             }
         }
@@ -281,24 +300,30 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
 
         void pause() override {
             std::unique_lock<std::recursive_mutex> _{mutex};
-            if (event_del(evp.get()) != 0) {
+            if ((io_state & EV_READ) && event_del(evp.get()) != 0) {
                 throw std::runtime_error("event_del");
             }
+            io_state &= ~EV_READ;
         }
 
         void resume() override {
             std::unique_lock<std::recursive_mutex> _{mutex};
-            if (event_add(evp.get(), &timeo) != 0) {
+            // We need to keep track of `io_state` because we promised in the
+            // docs that `resume` is idempotent but not checking whether we are
+            // already reading and calling `resume` multiple times would cause
+            // the timeout to be moved into the future.
+            if (!(io_state & EV_READ) && event_add(evp.get(), &timeo) != 0) {
                 throw std::runtime_error("event_add");
             }
+            io_state |= EV_READ;
         }
 
         Error try_sendto(
                 std::string &&binary_data, sockaddr_storage *dest) override {
             std::unique_lock<std::recursive_mutex> _{mutex};
-            net::clear_last_error();
             socklen_t sslen{};
-            switch (dest->ss_family) {
+            if (dest) {
+                switch (dest->ss_family) {
                 case AF_INET:
                     sslen = sizeof(sockaddr_in);
                     break;
@@ -306,41 +331,55 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
                     sslen = sizeof(sockaddr_in6);
                     break;
                 default:
-                    throw std::runtime_error("invalid_family");
+                    return ValueError();
                     // NOTREACHED
+                }
             }
+            net::clear_last_error();
             auto count = sendto(*fd, binary_data.data(), binary_data.size(), 0,
                     (sockaddr *)dest, sslen);
             auto err = net::get_last_error();
-            if (err) return err;
-            // TODO(sbs): figure out whether we want a specific error
-            if (count != binary_data.size()) return net::MessageSizeError();
+            if (!err && count != binary_data.size()) {
+                // TODO(sbs): figure out whether this can really happen
+                err = net::MessageSizeError();
+            }
+            // TODO(sbs): improve `Error` such that we can write the following
+            // code as a one-liner without complaints from the compiler.
+            if (err) {
+                return err;
+            }
             return NoError();
         }
 
         void set_timeout(uint32_t millisec) override {
             std::unique_lock<std::recursive_mutex> _{mutex};
+            // As specified in the documentation, changing the timeout does
+            // not affect any already pending I/O operations.
             timeo.tv_sec = millisec / 1000;
             timeo.tv_usec = (millisec % 1000) * 1000;
         }
 
-        ~LibeventDatagramSocket() override {}
+        ~DatagramSocket() override {}
 
-        LibeventDatagramSocket(LibeventReactor *reactor, int family) {
+        DatagramSocket(LibeventReactor *reactor, int family) {
             {
                 auto sd = socket(family, SOCK_DGRAM, 0);
-                if (sd == -1) throw std::runtime_error("socket");
+                if (sd == -1) {
+                    throw std::runtime_error("socket");
+                }
                 fd.reset(new evutil_socket_t{sd});
             }
             evp.reset(event_new(evbase, *fd, EV_READ, mk_datagram_read, this));
-            if (!evp) throw std::runtime_error("event_new");
+            if (!evp) {
+                throw std::runtime_error("event_new");
+            }
             if (evutil_make_socket_nonblocking(*fd) != 0) {
                 throw std::runtime_error("evutil_make_socket_nonblocking");
             }
-            owner = reactor;
+            owner = reactor; // Make sure we can close the socket later
         }
 
-        char buffer[4096];
+        char buffer[8192]; // Okay to skip initialization
         std::list<std::function<void()>> close_cbs;
         std::list<std::function<void(
                 const void *, size_t, const sockaddr_storage *)>>
@@ -348,6 +387,7 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
         std::list<std::function<void(Error &&)>> error_cbs;
         UniquePtr<event, EventDeleter> evp;
         UniquePtr<evutil_socket_t, FdDeleter> fd;
+        short io_state = 0;
         std::recursive_mutex mutex;
         LibeventReactor *owner = nullptr;
         timeval timeo{30, 0};
@@ -355,15 +395,19 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
     };
 
     net::datagram::Socket make_datagram_socket(int family) override {
-        SharedPtr<net::datagram::Socket::Impl> pimpl;
-        pimpl.reset(new LibeventDatagramSocket{this, family});
+        // We must create using `std::make_shared` because we're using the
+        // `EnableSharedFromThis` trick when we close the socket.
+        SharedPtr<net::datagram::Socket::Impl> pimpl{
+                std::make_shared<DatagramSocket>(this, family)};
         net::datagram::Socket dsock{pimpl};
         std::unique_lock<std::recursive_mutex> _{mutex};
-        active_datagram_sockets.insert(pimpl.underlying());
+        active_datagram_sockets.insert(pimpl);
         return dsock;
     }
 
-    void close_datagram_socket(std::shared_ptr<LibeventDatagramSocket> so) {
+    // This method is not part of the public API and is called by the
+    // datagram socket to cancel itself.
+    void close_datagram_socket(SharedPtr<DatagramSocket> so) {
         std::unique_lock<std::recursive_mutex> _{mutex};
         active_datagram_sockets.erase(so);
     }
@@ -402,17 +446,17 @@ class LibeventReactor : public Reactor, public NonCopyable, public NonMovable {
         cb(data_usage);
     }
 
-   private:
+  private:
     // ## Private attributes
 
-    std::set<std::shared_ptr<LibeventDatagramSocket>> active_datagram_sockets;
+    std::set<SharedPtr<DatagramSocket>> active_datagram_sockets;
     UniquePtr<event_base, EventBaseDeleter> evbase;
     DataUsage data_usage;
     std::recursive_mutex mutex;
     Worker worker;
 };
 
-}  // namespace mk
+} // namespace mk
 
 // ## C linkage callbacks
 
@@ -423,7 +467,9 @@ static inline void mk_pollfd_cb(evutil_socket_t, short evflags, void *opaque) {
 static inline void mk_datagram_read(
         evutil_socket_t, short evflags, void *opaque) {
     using namespace mk;
-    auto ptr = static_cast<LibeventReactor<>::LibeventDatagramSocket *>(opaque);
-    ptr->read_cb(evflags);
+    auto ptr = static_cast<LibeventReactor<>::DatagramSocket *>(opaque);
+    // Make sure the object lifecycle is such that it reaches end of the scope.
+    auto raii = ptr->shared_from_this();
+    raii->read_cb(evflags);
 }
 #endif

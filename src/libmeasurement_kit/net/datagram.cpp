@@ -11,7 +11,18 @@ namespace mk {
 namespace net {
 namespace datagram {
 
-Error Socket::close() { return pimpl->close(); }
+Error Socket::close() {
+    // We promised in the documentation that calling `close` has the same
+    // semantics of calling `reset` on a shared pointer.
+    // FIXME: this is VERY wrong!!!
+    auto raii = std::swap(pimpl);
+    auto err = NoError();
+    // We promised in the documentation that `close` is idempotent.
+    if (raii) {
+        err = raii->close();
+    }
+    return err;
+}
 
 Error Socket::connect(sockaddr_storage *storage) {
     return pimpl->connect(storage);
