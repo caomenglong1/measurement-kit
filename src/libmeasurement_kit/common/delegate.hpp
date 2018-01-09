@@ -39,7 +39,8 @@ template <typename T> class Delegate_ {
     std::function<T> func;
 };
 
-template <typename... T> using Delegate = Delegate_<void(T...)>;
+//template <typename... T> using Delegate = Delegate_<void(T...)>;
+template <typename... T> using Delegate = std::function<void(T...)>;
 
 } // namespace
 #endif
