@@ -252,13 +252,13 @@ MK_PUBLIC double mk_event_get_double_entry(
 MK_PUBLIC MK_BOOL mk_event_has_list_entry(
         mk_event_t *event, const char *key) MK_NOEXCEPT;
 
-MK_PUBLIC const char *mk_event_get_list_entry(
+MK_PUBLIC const char *mk_event_get_serialized_list_entry(
         mk_event_t *event, const char *key) MK_NOEXCEPT;
 
 MK_PUBLIC MK_BOOL mk_event_has_object_entry(
         mk_event_t *event, const char *key) MK_NOEXCEPT;
 
-MK_PUBLIC const char *mk_event_get_object_entry(
+MK_PUBLIC const char *mk_event_get_serialized_object_entry(
         mk_event_t *event, const char *key) MK_NOEXCEPT;
 
 ```
