@@ -465,7 +465,7 @@ MK_PUBLIC void mk_task_destroy(mk_task_t *task) MK_NOEXCEPT;
 ```
 
 Calling `mk_task_destroy` while a task is running will interrupt the task and
-wait for the task thread to join before freeing resources and returning.
+_wait_ until no thread is using the `mk_task_t` before freeing resources.
 
 ## MK_ENUM_VERBOSITY_LEVELS
 
@@ -473,30 +473,32 @@ The possible verbosity level strings are:
 
 ```C++
 #define MK_ENUM_VERBOSITY_LEVELS(XX)                                           \
-    XX(quiet)                                                                  \
-    XX(warning)                                                                \
-    XX(info)                                                                   \
-    XX(debug)                                                                  \
-    XX(debug2)
+    XX(QUIET)                                                                  \
+    XX(WARNING)                                                                \
+    XX(INFO)                                                                   \
+    XX(DEBUG)                                                                  \
+    XX(DEBUG2)
 
 ```
 
-- `"quiet"`: does not emit any log messages.
+- `"QUIET"`: does not emit any log messages.
 
-- `"warning"`: only emits log messages
+- `"WARNING"`: only emits log messages
 
-- `"info"`: also emits info messages
+- `"INFO"`: also emits info messages
 
-- `"debug"`: also emits debug messages
+- `"DEBUG"`: also emits debug messages
 
-- `"debug2"`: also emits debug2 messages
+- `"DEBUG2"`: also emits debug2 messages
 
 ## MK_ENUM_EVENTS
 
 The possible event types are listed below. We also have indicated
 the number of times an event should be emitted. Of course, since
-all events but the "end" event are not enabled, they will not be
-emitted unless they are enabled.
+all events but the "TERMINATE" event are not enabled, they will not
+be emitted unless they are enabled.
+
+XXX: event names are still very random.
 
 ```C++
 #define MK_ENUM_EVENT_TYPES(XX)                                                \
@@ -626,6 +628,8 @@ likely be removed in future versions of Measurement Kit.
 ## MK_ENUM_TASKS
 
 The possible task types are listed below.
+
+TODO: Task names identify classes and should be in CamelCase.
 
 ```C++
 #define MK_ENUM_TASK_TYPES(XX)                                                 \
