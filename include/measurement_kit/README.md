@@ -209,7 +209,7 @@ MK_PUBLIC const char *mk_event_as_serialized_json(
 
 The returned JSON will be like:
 
-```
+```JSON
 {
   type: "event-type",
   value: {
