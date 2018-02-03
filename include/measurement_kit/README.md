@@ -78,7 +78,7 @@ symbols included into the API and explain how to use them.
  * Measurement Kit Foreign Function Interface (FFI) API.
  *
  * WARNING! Automatically generated from `include/measurement_kit/README.md`
- * using `./script/get/ffi_h.sh`; DO NOT EDIT!
+ * using `./script/gen/ffi_h.sh`; DO NOT EDIT!
  */
 
 ```
