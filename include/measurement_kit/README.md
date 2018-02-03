@@ -284,8 +284,7 @@ MK_PUBLIC void mk_event_destroy(mk_event_t *event) MK_NOEXCEPT;
 
 A `mk_task_t` is an operation that Measurement Kit can perform. Even though
 you could start several tasks concurrently, _internally only a single
-task will be run at a time_. Subsequently `start`ed `mk_task_t`s will be put
-into a queue and will wait to become active.
+task will be run at a time_. Subsequently started tasks will have to wait.
 
 The `mk_task_t` type is thread safe. Specifically, you are supposed to
 configure and then schedule a task but you are not supposed to change the
