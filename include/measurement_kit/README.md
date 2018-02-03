@@ -87,8 +87,6 @@ The following symbols are discussed
 
 - [MK_PUBLIC](#mk_public)
 - [MK_BOOL](#mk_bool)
-- [MK_FALSE](#mk_false)
-- [MK_TRUE](#mk_true)
 - [MK_NOEXCEPT](#mk_noexcept)
 - [mk_version](#mk_version)
 - [mk_event](#mk_event)
@@ -130,19 +128,7 @@ as a real `int` and when we're using it with boolean semantics.
 
 ```
 
-## MK_FALSE
-
-```C++
-#define MK_FALSE 0
-
-```
-
-## MK_TRUE
-
-```C++
-#define MK_TRUE 1
-
-```
+We will use `0` to indicate `false` and nonzero to indicate `true`.
 
 ## MK_NOEXCEPT
 
