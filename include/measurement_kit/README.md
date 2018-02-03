@@ -389,7 +389,7 @@ MK_PUBLIC MK_BOOL mk_task_set_options(
 ```
 
 By default (but this can be changed with options), a task will submit
-the results of measurements to the OONI collector. Optionally, you can
+measurements results to the OONI collector. Optionally, you can
 also specify that you want such result (also called the "report") to be
 saved into a specific file. You can also get the report (or reports, if the
 task iterates over multiple inputs) if you enable the `"RESULT"` event.
