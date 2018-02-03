@@ -379,9 +379,8 @@ MK_PUBLIC void mk_task_set_double_option(
 You can alternatively pass Measurement Kit a JSON that contains all
 the options you would like to set, with `mk_task_set_options`. This function
 will return false if the JSON does not parse, and true otherwise. The
-options will be actually processed when the task starts, hence, as
-stated above, you may notice _later_ that specific options have wrong
-values.
+options may not be processed immediately, as stated above, so a task may
+fail later on when it notices an option value is not acceptable.
 
 ```C
 MK_PUBLIC MK_BOOL mk_task_set_options(
