@@ -293,8 +293,7 @@ documentation of `mk_task_start()` for more information on this topic.
 
 You can create a task by type name. Task names are defined below. Also,
 once a `mk_task_t` is created, you can query its type name. If you create a
-task with an unrecognized name, the task will fail when you start it,
-and the `"END"` event will be emitted with a suitable error.
+task with an unrecognized name, the task will fail when you start it.
 
 ```C
 typedef struct mk_task_s mk_task_t;
