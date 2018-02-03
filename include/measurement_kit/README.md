@@ -86,13 +86,13 @@ symbols included into the API and explain how to use them.
 The following symbols are discussed
 
 - [MK_PUBLIC](#mk_public)
-- [MK_NOEXCEPT](#mk_noexcept)
 - [MK_BOOL](#mk_bool)
 - [MK_FALSE](#mk_false)
 - [MK_TRUE](#mk_true)
+- [MK_NOEXCEPT](#mk_noexcept)
 - [mk_version](#mk_version)
-- [mk_event_t](#mk_event_t)
-- [mk_task_t](#mk_task_t)
+- [mk_event](#mk_event)
+- [mk_task](#mk_task)
 - [MK_ENUM_VERBOSITY_LEVELS](#mk_enum_verbosity_levels)
 - [MK_ENUM_EVENTS](#mk_enum_events)
 - [MK_ENUM_TASKS](#mk_enum_tasks)
@@ -116,26 +116,6 @@ to DLLs and Unix shared libraries.
 #define MK_PUBLIC __attribute__((visibility("default")))
 #else
 #define MK_PUBLIC /* Nothing */
-#endif
-
-```
-
-## MK_NOEXCEPT
-
-We need to tell a C++ compiler processing this file that this is a C API
-and that functions in this API do not `throw`.
-
-```C++
-#if defined(__cplusplus) && __cplusplus >= 201103L
-#define MK_NOEXCEPT noexcept
-#elif defined(__cplusplus)
-#define MK_NOEXCEPT throw()
-#else
-#define MK_NOEXCEPT /* Nothing */
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 ```
@@ -164,6 +144,26 @@ as a real `int` and when we're using it with boolean semantics.
 
 ```
 
+## MK_NOEXCEPT
+
+We need to tell a C++ compiler processing this file that this is a C API
+and that functions in this API do not `throw`.
+
+```C++
+#if defined(__cplusplus) && __cplusplus >= 201103L
+#define MK_NOEXCEPT noexcept
+#elif defined(__cplusplus)
+#define MK_NOEXCEPT throw()
+#else
+#define MK_NOEXCEPT /* Nothing */
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+```
+
 ## mk_version
 
 `mk_version_major` returns MK's major version number.
@@ -183,7 +183,7 @@ MK_PUBLIC unsigned long mk_version_minor(void) MK_NOEXCEPT;
 These two functions are available to allow FFI bindings writers to
 programmatically access MK version.
 
-## mk_event_t
+## mk_event
 
 `mk_event_t` is an event emitted by a `mk_task_t`. It is an opaque type.
 
@@ -294,7 +294,7 @@ MK_PUBLIC void mk_event_destroy(mk_event_t *event) MK_NOEXCEPT;
 
 ```
 
-## mk_task_t
+## mk_task
 
 A `mk_task_t` is an operation that Measurement Kit can perform. Even though
 you could `start` several `Task`s concurrently, _internally only a single
