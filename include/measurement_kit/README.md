@@ -121,7 +121,7 @@ to DLLs and Unix shared libraries.
 ## MK_BOOL
 
 We define a type called `MK_BOOL` to make it clear when we're using `int`
-as a real `int` and when we're using it with boolean semantics.
+with boolean semantics.
 
 ```C++
 #define MK_BOOL int
