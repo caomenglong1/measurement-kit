@@ -272,8 +272,8 @@ whose structure is defined in the [TheTorProject/ooni-spec](
 https://github.com/TheTorProject/ooni-spec) repository and is quited
 nested, so that with the above API you can only get the top-level keys.
 
-When you will get a `mk_event_t` pointer, you will always _own_ it, therefore,
-make sure that you destroy it when you are done, using:
+When you will get a `mk_event_t` pointer, you will always _own_ it, so,
+destroy it when you are done using:
 
 ```C
 MK_PUBLIC void mk_event_destroy(mk_event_t *event) MK_NOEXCEPT;
