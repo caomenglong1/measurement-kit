@@ -104,7 +104,7 @@ MK_PUBLIC void mk_task_add_input(
 MK_PUBLIC void mk_task_add_input_file(
         mk_task_t *task, const char *path) MK_NOEXCEPT;
 
-MK_PUBLIC void mk_task_set_verbosity(
+MK_PUBLIC MK_BOOL mk_task_set_verbosity(
         mk_task_t *task, const char *verbosity) MK_NOEXCEPT;
 
 MK_PUBLIC void mk_task_set_log_file(

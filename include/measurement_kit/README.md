@@ -346,11 +346,11 @@ a log file or you declare you are interested to get `"LOG"` events. In
 such case, you can control what level of verbosity you want. By default,
 only `"WARNING"` log events are emitted. However, you can control the level
 of verbosity you want by passing the proper string (see below) to the
-`mk_task_set_verbosity` function. If a verbosity level is not recognized, the
-task will fail right after you attempt to start it.
+`mk_task_set_verbosity` function. If a verbosity level is not recognized,
+`mk_task_set_verbosity` will return `false`.
 
 ```C
-MK_PUBLIC void mk_task_set_verbosity(
+MK_PUBLIC MK_BOOL mk_task_set_verbosity(
         mk_task_t *task, const char *verbosity) MK_NOEXCEPT;
 
 MK_PUBLIC void mk_task_set_log_file(
@@ -361,7 +361,7 @@ MK_PUBLIC void mk_task_set_log_file(
 The behavior of tasks can be greatly influenced by setting options (see
 below for all the available options). Options can either be strings,
 integers, or doubles. If you pass to an option the wrong value, the task
-may not fail immediately, rather it may fall later, when it discovers that
+may not fail immediately, rather it may fail later, when it discovers that
 the option value is not acceptable.
 
 ```C
