@@ -422,8 +422,8 @@ MK_PUBLIC void mk_task_start(mk_task_t *task) MK_NOEXCEPT;
 
 ```
 
-The `mk_task_is_running` function returns `true` since a task `start` method
-has been called until the task has finished running.
+The `mk_task_is_running` function returns `true` since a task has been
+started and until the task has finished running.
 
 ```C
 MK_PUBLIC MK_BOOL mk_task_is_running(mk_task_t *task) MK_NOEXCEPT;
