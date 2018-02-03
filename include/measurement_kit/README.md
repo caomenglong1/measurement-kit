@@ -286,10 +286,10 @@ A `mk_task_t` is an operation that Measurement Kit can perform. Even though
 you could start several tasks concurrently, _internally only a single
 task will be run at a time_. Subsequently started tasks will have to wait.
 
-The `mk_task_t` type is thread safe. Specifically, you are supposed to
-configure and then schedule a task but you are not supposed to change the
-task configuration once it is scheduled. Attempting to do so is a
-programmer error that will cause `abort()` to be called.
+Certain task operations are thread safe, others are not. Specifically, once
+you have started a task, attempting to change some of its internals leads
+to `abort()` being called. A task is not made to be reconfigured while it's
+running, hence we need to protect ourself against this misuse.
 
 You can create a task by type name. Task names are defined below. Also,
 once a `mk_task_t` is created, you can query its type name. If you create a
