@@ -305,11 +305,11 @@ MK_PUBLIC char *mk_task_get_type(mk_task_t *task) MK_NOEXCEPT;
 ```
 
 You can add annotations to a task. Such annotations will be added to the
-task result (or "report") and may be useful to you, or to others, in
-processing the results afterwards. Measurement Kit will let you add all
-the annotations you want. The type of the annotation will be loosely
-preserved in the final report (i.e. strings will still be strings and
-numeric values will still be numeric values).
+task result (or "report") and may be useful to processing the results
+afterwards. Measurement Kit will let you add all the annotations you
+want. The type of the annotation will be loosely preserved in the final
+report (i.e. strings will still be strings and numeric values will still
+be numeric values).
 
 ```C
 MK_PUBLIC void mk_task_add_string_annotation(
