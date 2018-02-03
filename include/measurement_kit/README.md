@@ -211,8 +211,8 @@ The returned JSON will be like:
 
 ```JSON
 {
-  type: "event-type",
-  value: {
+  "type": "event-type",
+  "value": {
   }
 }
 ```
