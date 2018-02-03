@@ -63,7 +63,7 @@ gracefully, typically returning `NULL` back.
 
 ## Index
 
-The remainder of this file documents the `measurement_kit/mk.h` API
+The remainder of this file documents the `measurement_kit/ffi.h` API
 header using a sort of literate programming. We will cover all the
 symbols included into the API and explain how to use them.
 
