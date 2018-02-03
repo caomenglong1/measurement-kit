@@ -20,9 +20,8 @@ wrappers in several programming languages;
 - [version.h](version.h): header exposing MK version macros.
 
 Of all these header files, the only file exporting functions is [ffi.h](ffi.h)
-since all the others just define inline wrappers. This allows to compile a
-version of MK that statically link to a C++ library and can inter-operate with
-code using other versions of the C++ library.
+since all the others just define inline wrappers. This allows hide the fact that
+MK is written in C++ and allows linking with pre-C++-11 codebases.
 
 The rest of this document describes [ffi.h](ffi.h), which is the most
 fundamental API exposed by MK. This document is organized such that we
