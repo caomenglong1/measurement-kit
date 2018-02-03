@@ -79,6 +79,8 @@ symbols included into the API and explain how to use them.
  *
  * WARNING! Automatically generated from `include/measurement_kit/README.md`
  * using `./script/gen/ffi_h.sh`; DO NOT EDIT!
+ *
+ * See include/measurement_kit/README.md for API documentation.
  */
 
 ```
@@ -123,7 +125,7 @@ to DLLs and Unix shared libraries.
 We define a type called `MK_BOOL` to make it clear when we're using `int`
 with boolean semantics.
 
-```C++
+```C
 #define MK_BOOL int
 
 ```
@@ -135,7 +137,7 @@ We will use `0` to indicate `false` and nonzero to indicate `true`.
 We need to tell a C++ compiler processing this file that this is a C API
 and that functions in this API do not `throw`.
 
-```C++
+```C
 #if defined(__cplusplus) && __cplusplus >= 201103L
 #define MK_NOEXCEPT noexcept
 #elif defined(__cplusplus)
@@ -154,14 +156,14 @@ extern "C" {
 
 `mk_version_major` returns MK's major version number.
 
-```C++
+```C
 MK_PUBLIC unsigned long mk_version_major(void) MK_NOEXCEPT;
 
 ```
 
 `mk_version_minor` returns MK's minor version number.
 
-```C++
+```C
 MK_PUBLIC unsigned long mk_version_minor(void) MK_NOEXCEPT;
 
 ```
@@ -175,6 +177,7 @@ programmatically access MK version.
 
 ```C
 typedef struct mk_event_s mk_event_t;
+
 ```
 
 Internally, `mk_event_t` is a JSON object that maps string keys to JSON
@@ -438,7 +441,7 @@ Measurement Kit will notify the blocking I/O engine that the task should
 be aborted and that should result in the task being aborted after one-two
 seconds of delay, which are caused by internal timeout settings.
 
-```C++
+```C
 MK_PUBLIC void mk_task_interrupt(mk_task_t *task) MK_NOEXCEPT;
 
 ```
@@ -462,6 +465,7 @@ when done using `mk_task_destroy`:
 
 ```C
 MK_PUBLIC void mk_task_destroy(mk_task_t *task) MK_NOEXCEPT;
+
 ```
 
 Calling `mk_task_destroy` while a task is running will interrupt the task and
@@ -471,7 +475,7 @@ _wait_ until no thread is using the `mk_task_t` before freeing resources.
 
 The possible verbosity level strings are:
 
-```C++
+```C
 #define MK_ENUM_VERBOSITY_LEVELS(XX)                                           \
     XX(QUIET)                                                                  \
     XX(WARNING)                                                                \
@@ -500,7 +504,7 @@ be emitted unless they are enabled.
 
 XXX: event names are still very random.
 
-```C++
+```C
 #define MK_ENUM_EVENT_TYPES(XX)                                                \
     XX(queued)                                                                 \
     XX(started)                                                                \
@@ -631,7 +635,7 @@ The possible task types are listed below.
 
 TODO: Task names identify classes and should be in CamelCase.
 
-```C++
+```C
 #define MK_ENUM_TASK_TYPES(XX)                                                 \
     XX(dash)                                                                   \
     XX(captive_portal)                                                         \
@@ -663,7 +667,7 @@ TODO: Task names identify classes and should be in CamelCase.
 
 Here we describe the available string options.
 
-```C++
+```C
 #define MK_ENUM_STRING_OPTIONS(XX)                                             \
     XX(bouncer_base_url)                                                       \
     XX(collector_base_url)                                                     \
@@ -677,7 +681,7 @@ Here we describe the available string options.
 
 Here we describe the available int options.
 
-```C++
+```C
 #define MK_ENUM_INT_OPTIONS(XX)                                                \
     XX(ignore_open_report_error)                                               \
     XX(ignore_write_entry_error)                                               \
@@ -692,7 +696,7 @@ Here we describe the available int options.
 
 Here we describe the available double options.
 
-```C++
+```C
 #define MK_ENUM_DOUBLE_OPTIONS(XX)                                             \
     XX(max_runtime)
 
@@ -702,7 +706,7 @@ Here we describe the available double options.
 
 Here we list all the possible failure strings.
 
-```C++
+```C
 #define MK_ENUM_FAILURES(XX)                                                   \
     XX(no_error)                                                               \
     XX(value_error)                                                            \
@@ -713,6 +717,6 @@ Here we list all the possible failure strings.
 
 This concludes our description of [ffi](ffi.h).
 
-```C++
+```C
 #endif /* MEASUREMENT_KIT_MK_H */
 ```

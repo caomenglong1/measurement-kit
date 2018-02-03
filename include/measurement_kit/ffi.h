@@ -9,6 +9,8 @@
  *
  * WARNING! Automatically generated from `include/measurement_kit/README.md`
  * using `./script/gen/ffi_h.sh`; DO NOT EDIT!
+ *
+ * See include/measurement_kit/README.md for API documentation.
  */
 
 #if defined(_WIN32) && defined(MK_BUILDING_DLL)
@@ -21,7 +23,26 @@
 #define MK_PUBLIC /* Nothing */
 #endif
 
+#define MK_BOOL int
+
+#if defined(__cplusplus) && __cplusplus >= 201103L
+#define MK_NOEXCEPT noexcept
+#elif defined(__cplusplus)
+#define MK_NOEXCEPT throw()
+#else
+#define MK_NOEXCEPT /* Nothing */
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+MK_PUBLIC unsigned long mk_version_major(void) MK_NOEXCEPT;
+
+MK_PUBLIC unsigned long mk_version_minor(void) MK_NOEXCEPT;
+
 typedef struct mk_event_s mk_event_t;
+
 MK_PUBLIC const char *mk_event_get_type(mk_event_t *event) MK_NOEXCEPT;
 
 MK_PUBLIC const char *mk_event_as_serialized_json(
@@ -113,6 +134,78 @@ MK_PUBLIC void mk_task_start(mk_task_t *task) MK_NOEXCEPT;
 
 MK_PUBLIC MK_BOOL mk_task_is_running(mk_task_t *task) MK_NOEXCEPT;
 
+MK_PUBLIC void mk_task_interrupt(mk_task_t *task) MK_NOEXCEPT;
+
 MK_PUBLIC mk_event_t *mk_task_wait_for_next_event(mk_task_t *task) MK_NOEXCEPT;
 
 MK_PUBLIC void mk_task_destroy(mk_task_t *task) MK_NOEXCEPT;
+
+#define MK_ENUM_VERBOSITY_LEVELS(XX)                                           \
+    XX(QUIET)                                                                  \
+    XX(WARNING)                                                                \
+    XX(INFO)                                                                   \
+    XX(DEBUG)                                                                  \
+    XX(DEBUG2)
+
+#define MK_ENUM_EVENT_TYPES(XX)                                                \
+    XX(queued)                                                                 \
+    XX(started)                                                                \
+    XX(log)                                                                    \
+    XX(configured)                                                             \
+    XX(progress)                                                               \
+    XX(performance)                                                            \
+    XX(measurement_error)                                                      \
+    XX(report_submission_error)                                                \
+    XX(result)                                                                 \
+    XX(end)
+
+#define MK_ENUM_TASK_TYPES(XX)                                                 \
+    XX(dash)                                                                   \
+    XX(captive_portal)                                                         \
+    XX(dns_injection)                                                          \
+    XX(facebook_messenger)                                                     \
+    XX(http_header_field_manipulation)                                         \
+    XX(http_invalid_request_line)                                              \
+    XX(meek_fronted_requests)                                                  \
+    XX(multi_ndt)                                                              \
+    XX(ndt)                                                                    \
+    XX(tcp_connect)                                                            \
+    XX(telegram)                                                               \
+    XX(web_connectivity)                                                       \
+    XX(whatsapp)                                                               \
+                                                                               \
+    XX(opos_register)                                                          \
+    XX(opos_update)                                                            \
+    XX(opos_list_tasks)                                                        \
+    XX(opos_get_task)                                                          \
+    XX(opos_accept_task)                                                       \
+    XX(opos_reject_task)                                                       \
+    XX(opos_task_done)                                                         \
+                                                                               \
+    XX(find_probe_location)
+
+#define MK_ENUM_STRING_OPTIONS(XX)                                             \
+    XX(bouncer_base_url)                                                       \
+    XX(collector_base_url)                                                     \
+    XX(dns_nameserver)                                                         \
+    XX(geoip_ans_path)                                                         \
+    XX(geoip_country_path)
+
+#define MK_ENUM_INT_OPTIONS(XX)                                                \
+    XX(ignore_open_report_error)                                               \
+    XX(ignore_write_entry_error)                                               \
+    XX(no_bouncer)                                                             \
+    XX(no_collector)                                                           \
+    XX(no_file_report)                                                         \
+    XX(parallelism)
+
+#define MK_ENUM_DOUBLE_OPTIONS(XX)                                             \
+    XX(max_runtime)
+
+#define MK_ENUM_FAILURES(XX)                                                   \
+    XX(no_error)                                                               \
+    XX(value_error)                                                            \
+    XX(eof_error)                                                              \
+    XX(connection_reset_error)
+
+#endif /* MEASUREMENT_KIT_MK_H */
