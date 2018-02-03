@@ -283,7 +283,7 @@ MK_PUBLIC void mk_event_destroy(mk_event_t *event) MK_NOEXCEPT;
 ## mk_task
 
 A `mk_task_t` is an operation that Measurement Kit can perform. Even though
-you could `start` several `Task`s concurrently, _internally only a single
+you could start several tasks concurrently, _internally only a single
 task will be run at a time_. Subsequently `start`ed `mk_task_t`s will be put
 into a queue and will wait to become active.
 
@@ -294,7 +294,7 @@ programmer error that will cause `abort()` to be called.
 
 You can create a task by type name. Task names are defined below. Also,
 once a `mk_task_t` is created, you can query its type name. If you create a
-`Task` with an unrecognized name, the task will fail when you start it,
+task with an unrecognized name, the task will fail when you start it,
 and the `"END"` event will be emitted with a suitable error.
 
 ```C
@@ -468,17 +468,6 @@ MK_PUBLIC void mk_task_destroy(mk_task_t *task) MK_NOEXCEPT;
 
 Calling `mk_task_destroy` while a task is running will interrupt the task and
 wait for the task thread to join before freeing resources and returning.
-
-This ends our discussion of `engine::Task`. All what remains are internal
-fields required to actually implement a `Task` properly.
-
-```C
-
-#ifdef __cplusplus
-} // __cplusplus
-#endif
-
-```
 
 ## MK_ENUM_VERBOSITY_LEVELS
 
