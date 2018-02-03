@@ -87,7 +87,7 @@ typedef struct mk_task_s mk_task_t;
 
 MK_PUBLIC mk_task_t *mk_task_create(const char *type) MK_NOEXCEPT;
 
-MK_PUBLIC char *mk_task_get_type(mk_task_t *task) MK_NOEXCEPT;
+MK_PUBLIC const char *mk_task_get_type(mk_task_t *task) MK_NOEXCEPT;
 
 MK_PUBLIC void mk_task_add_string_annotation(
         mk_task_t *task, const char *key, const char *value) MK_NOEXCEPT;
