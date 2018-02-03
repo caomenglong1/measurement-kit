@@ -287,9 +287,9 @@ you could start several tasks concurrently, _internally only a single
 task will be run at a time_. Subsequently started tasks will have to wait.
 
 Certain task operations are thread safe, others are not. Specifically, once
-you have started a task, attempting to change some of its internals leads
-to `abort()` being called. A task is not made to be reconfigured while it's
-running, hence we need to protect ourself against this misuse.
+you have started a task, attempting to change its configuration is not supported
+and `abort()` will be called if you attempt doing that. See below the
+documentation of `mk_task_start()` for more information on this topic.
 
 You can create a task by type name. Task names are defined below. Also,
 once a `mk_task_t` is created, you can query its type name. If you create a
@@ -415,7 +415,7 @@ MK_PUBLIC void mk_task_enable_all_events(mk_task_t *task) MK_NOEXCEPT;
 
 When a task is configured, you can start it using `mk_task_start`. This will
 queue the task until the internal runner thread is ready to service it. Do not
-attempt to further modify the events using any of the above methods once
+attempt to further configure the task using any of the above functions once
 a task has been started. Doing that will cause `abort()` to be called.
 
 ```C
