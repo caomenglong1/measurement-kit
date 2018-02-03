@@ -714,7 +714,7 @@ Here we list all the possible failure strings.
 
 ```
 
-This concludes our description of [ffi](ffi.h).
+This concludes our description of [ffi.h](ffi.h).
 
 ```C
 #endif /* MEASUREMENT_KIT_FFI_H */
