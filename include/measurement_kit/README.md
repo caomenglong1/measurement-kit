@@ -413,8 +413,8 @@ MK_PUBLIC void mk_task_enable_all_events(mk_task_t *task) MK_NOEXCEPT;
 ```
 
 When a task is configured, you can start it using `mk_task_start`. This will
-queue the task until the internal runner thread is ready to service it. Do not
-attempt to further configure the task using any of the above functions once
+queue the task until previously scheduled tasks have finished running. Do not
+attempt to further configure the task using _any_ of the above functions, once
 a task has been started. Doing that will cause `abort()` to be called.
 
 ```C
