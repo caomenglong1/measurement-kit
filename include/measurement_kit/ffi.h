@@ -208,4 +208,4 @@ MK_PUBLIC void mk_task_destroy(mk_task_t *task) MK_NOEXCEPT;
     XX(eof_error)                                                              \
     XX(connection_reset_error)
 
-#endif /* MEASUREMENT_KIT_MK_H */
+#endif /* MEASUREMENT_KIT_FFI_H */
