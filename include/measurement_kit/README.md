@@ -67,7 +67,7 @@ The remainder of this file documents the `measurement_kit/ffi.h` API
 header using a sort of literate programming. We will cover all the
 symbols included into the API and explain how to use them.
 
-```
+```C
 /* Part of Measurement Kit <https://measurement-kit.github.io/>.
    Measurement Kit is free software under the BSD license. See AUTHORS
    and LICENSE for more information on the copying conditions. */
