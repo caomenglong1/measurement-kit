@@ -24,7 +24,7 @@ static mk_serialization_t *mk_serialization_create(
     return new mk_serialization_t{s};
 }
 
-const char *mk_serialization_str(const mk_serialization_t *s) noexcept {
+const char *mk_serialization_get_string(const mk_serialization_t *s) noexcept {
     return ((s)) ? s.data() : nullptr;
 }
 
