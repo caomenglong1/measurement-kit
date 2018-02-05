@@ -401,6 +401,10 @@ void mk_task_start(mk_task_t *task) noexcept {
             return; // Prevent racing on starting a task
         }
         task->flags |= F_START | F_RUN;
+        // TODO(bassosimone): this code would be more robust if we could avoid
+        // using detached threads. Refactoring to be done once we start to have
+        // this API as something testable and we implement other APIs using
+        // as base implementation this API.
         Worker::default_tasks_queue()->call_in_thread(
                 mk::Logger::global(), [task]() {
                     task->reactor->run_with_initial_event([task]() {
