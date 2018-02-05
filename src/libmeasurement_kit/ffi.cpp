@@ -2,474 +2,480 @@
 // Measurement Kit is free software under the BSD license. See AUTHORS
 // and LICENSE for more information on the copying conditions.
 
-// This file implements Measurement Kit public API.
+// TODO(bassosimone): sync up the specification with this file. This file is
+// actually the most feature-complete stuff and the spec needs update.
 
-#include <measurement_kit/mk.h>
+#include <measurement_kit/ffi.h>
 
+#include <assert.h>
+
+#include <measurement_kit/common/logger.hpp>
 #include <measurement_kit/common/nlohmann/json.hpp>
+#include <measurement_kit/version.h>
 
-// Implementation note: since this API is expected to be used through FFI or
-// through SWIG generated wrappers, we need to place extra care into making sure
-// that we gracefully accept `nullptr` in input.
+double mk_version() noexcept { MK_VERSION_MAJOR##.##MK_VERSION_MINOR; }
 
-// # API
+struct mk_serialization_t : public std::string {
+    using std::string::string;
+};
 
-int mk_get_api_major(void) noexcept { return MK_API_MAJOR; }
+static mk_serialization_t *mk_serialization_create(
+        const std::string &s) noexcept {
+    return new mk_serialization_t{s};
+}
 
-int mk_get_api_minor(void) noexcept { return MK_API_MINOR; }
+const char *mk_serialization_str(const mk_serialization_t *s) noexcept {
+    return ((s)) ? s.data() : nullptr;
+}
 
-// # Event
-//
-// This is just a wrapper around the very flexible nlohmann::json. We decided
-// to put the event type inside of the object itself, so that a Node.js consumer
-// can skip also the event checking, and directly use the serialization.
+void mk_serialization_destroy(mk_serialization_t *s) noexcept {
+    delete s; // handles nullptr
+}
 
 struct mk_event_s : public nlohmann::json {
-    using nlohmann::json::son;
+    using nlohmann::json::json;
 };
-
-#define EVTYPE_KEY "event_type" // Avoid possible typos
 
 static mk_event_t *mk_event_create(const char *type) noexcept {
-#define XX(event_name)                                                         \
-    if (strcmp(#event_name, type) == 0) {                                      \
-        mk_event_t *event = new mk_event_t{};                                  \
-        (*event)[EVTYPE_KEY] = type;                                           \
-        return event;                                                          \
+    auto evp = std::make_unique<mk_event_t>();
+    (*evp)["type"] = type;
+    (*evp)["values"] = nlohmann::json::object();
+    return evp.release();
+}
+
+MK_BOOL mk_event_has_null_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).is_null();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
     }
-    MK_ENUMERATE_EVENT_TYPES(XX)
-#undef XX
-    mk::warn("mk_event_create: invalid event: %s", type);
-    assert(false);
+    return false;
+}
+
+MK_BOOL mk_event_has_int_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).is_number_integer();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
+    return false;
+}
+
+MK_BOOL mk_event_has_double_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).is_number_float();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
+    return false;
+}
+
+MK_BOOL mk_event_has_string_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).is_string();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
+    return false;
+}
+
+MK_BOOL mk_event_has_array_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).is_array();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
+    return false;
+}
+
+MK_BOOL mk_event_has_object_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).is_object();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
+    return false;
+}
+
+int mk_event_get_int_entry(const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).get<int>();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
+    return 0;
+}
+
+double mk_event_get_double_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return evp->at("values").at(key).get<double>();
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
+    return 0.0;
+}
+
+mk_serialization_t *mk_event_get_string_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return mk_serialization_create(
+                    evp->at("values").at(key).get<std::string>());
+        } catch (const std::exception &) {
+            /* NOTHING */;
+        }
+    }
     return nullptr;
 }
 
-const char *mk_event_get_type(mk_event_t *event) noexcept {
-    return (event) ? (*event)[EVTYPE_KEY].get<std::string>().data() : nullptr;
-}
-
-const char *mk_event_as_serialized_json(mk_event_t *event) noexcept {
-    return (event) ? event->dump() : nullptr;
-}
-
-MK_BOOL mk_event_has_null_entry(mk_event_t *event, const char *key) noexcept {
-    return (event) && (key) && (event->count(key)) && (*event)[key].is_null();
-}
-
-MK_BOOL mk_event_has_string_entry(mk_event_t *event, const char *key) noexcept {
-    return (event) && (key) && (event->count(key)) && (*event)[key].is_string();
-}
-
-const char *mk_event_get_string_entry(
-        mk_event_t *event, const char *key) noexcept {
-    return ((event) && (key) && (event->count(key)))
-                   ? (*event)[key].get<const char *>()
-                   : nullptr;
-}
-
-MK_BOOL mk_event_has_int_entry(mk_event_t *event, const char *key) noexcept {
-    return (event) && (key) && (event->count(key)) &&
-           (*event)[key].is_number_integer();
-}
-
-int mk_event_get_int_entry(mk_event_t *event, const char *key) noexcept {
-    return ((event) && (key) && (event->count(key))) ? (*event)[key].get<int>()
-                                                     : 0;
-}
-
-MK_BOOL mk_event_has_double_entry(mk_event_t *event, const char *key) noexcept {
-    return (event) && (key) && (event->count(key)) &&
-           (*event)[key].is_number_float();
-}
-
-double mk_event_get_double_entry(mk_event_t *event, const char *key) noexcept {
-    return ((event) && (key) && (event->count(key)))
-                   ? (*event)[key].get<double>()
-                   : 0.0;
-}
-
-MK_BOOL mk_event_has_array_entry(mk_event_t *event, const char *key) noexcept {
-    return (event) && (key) && (event->count(key)) && (*event)[key].is_array();
-}
-
-const char *mk_event_get_serialized_array_entry(
-        mk_event_t *event, const char *key) noexcept {
-    return (event) && (key) && (event->count(key)) ? (*event)[key].dump()
-                                                   : nullptr;
-}
-
-MK_BOOL mk_event_has_object_entry(mk_event_t *event, const char *key) noexcept {
-    return (event) && (key) && (event->count(key)) && (*event)[key].is_object();
-}
-
-const char *mk_event_get_serialized_object_entry(
-        mk_event_t *event, const char *key) noexcept {
-    return ((event) && (key) && (event->count(key))) ? (*event)[key].dump()
-                                                     : nullptr;
-}
-
-void mk_event_destroy(mk_event_t *event) noexcept {
-#ifndef NDEBUG
-    // This is what Arturo would call a "Leonidism". An ex post check to
-    // ensure that no other piece of code changed the event type.
-    if ((event)) {
-        bool event_type_okay = false;
-        if ((event->count(EVTYPE_KEY)) && (*event)[EVTYPE_KEY].is_string()) {
-            const char *evtype = (*event)[EVTYPE_KEY].get<std::string>().data();
-#define XX(event_name)                                                         \
-    if (strcmp(#event_name, evtype) == 0) {                                    \
-        event_type_okay = true;                                                \
-    }
-            MK_ENUMERATE_EVENT_TYPES(XX)
-#undef XX
+mk_serialization_t *mk_event_serialize_entry(
+        const mk_event_t *evp, const char *key) noexcept {
+    if (evp != nullptr && key != nullptr) {
+        try {
+            return mk_serialization_create(evp->at("values").at(key).dump());
+        } catch (const std::exception &) {
+            /* NOTHING */;
         }
-        assert(event_type_okay);
     }
-#endif
-    delete event; // Note that `delete` handles nullptr gracefully
+    return nullptr;
 }
 
-// # Task
-//
-// Implemented as a wrapper around the internal `Runnable` class.
-// XXX
+mk_serialization_t *mk_event_serialize(const mk_event_t *evp) noexcept {
+    if (evp != nullptr) {
+        return mk_serialization_create(evp->dump());
+    }
+    return nullptr;
+}
 
-struct mk_task_s {
-    std::condition_variable condition;
-    std::deque<std::unique_ptr<mk_event_t>> deque;
-    uint32_t enabled = MK_EVENT_END;
-    std::atomic_bool interrupted = false;
-    std::mutex mutex;
-    std::unique_ptr<mk::nettests::Runnable> runnable;
-    std::thread thread;
-    std::string type;
+void mk_event_destroy(const mk_event_t *evp) noexcept {
+    delete evp; // handles nullptr
+}
+
+struct mk_task_template_s : public nlohmann::json {
+    using nlohmann::json::json;
 };
 
-mk_task_t *mk_task_create(const char *type) noexcept {
-#define XX(task_name)                                                          \
-    if (strcmp(#task_name, type) == 0) {                                       \
-        auto task = std::make_unique<mk_task_t>();                             \
-        task->runnable = std::make_unique<task_name##Runnable>();              \
-        task->runnable->reactor = mk::Reactor::make();                         \
-        task->type = type;                                                     \
-        return task.relase();                                                  \
+#define TOPLEVEL_KEYS(XX)                                                      \
+    XX(type, string, "")                                                       \
+    XX(values, object, object())
+
+#define VALUES_KEYS(XX)                                                        \
+    XX(annotations, object, object())                                          \
+    XX(inputs, array, array())                                                 \
+    XX(input_files, array, array())                                            \
+    XX(verbosity, string, "QUIET")                                             \
+    XX(log_file, string, "")                                                   \
+    XX(options, object, object())                                              \
+    XX(output_file, string, "")                                                \
+    XX(enabled_events, array, array({"END"})
+
+#define DO_TOPLEVEL_KEYS(name, type, initializer)                              \
+    if (json.count(#name) != 0) {                                              \
+        if (!json.at(#name).is_##type) {                                       \
+            mk::warn("invalid type for toplevel key: %s", #name);              \
+            return false;                                                      \
+        }                                                                      \
+    } else {                                                                   \
+        json.at(#name) = initializer;                                          \
     }
-    MK_ENUM_TASK_TYPES(XX)
-#undef XX
-    mk::warn("mk_task_create: invalid task: %s", type);
-    assert(false);
+
+#define DO_VALUES_KEYS(name, type, initializer)                                \
+    if (json.at("values").count(#name) != 0) {                                 \
+        if (!json.at("values").at(#name).is_##type) {                          \
+            mk::warn("invalid type for values key: %s", #name);                \
+            return false;                                                      \
+        }                                                                      \
+    } else {                                                                   \
+        json.at("values").at(#name) = initializer;                             \
+    }
+
+static bool validate_or_possibly_fix(nlohmann::json &json) noexcept {
+    if (!json.is_object()) {
+        mk::warn("invalid type for root object");
+        return false;
+    }
+    TOPLEVEL_KEYS(DO_TOPLEVEL_KEYS)
+    VALUES_KEYS(DO_VALUES_KEYS)
+    return true;
+}
+
+#undef TOPLEVEL_KEYS
+#undef MK_TEMPLAYE_VALUES_KEYS
+#undef DO_TOPLEVEL_KEYS
+#undef DO_VALUES_KEYS
+
+mk_task_template_t *mk_task_template_create(const char *type) noexcept {
+    if (type == nullptr) {
+        return nullptr;
+    }
+    nlohmann::json json;
+    json["type"] = type;
+    if (!validate_or_possibly_fix_json(json)) {
+        abort();
+    }
+    return new mk_task_template_t{std::move(json)};
+}
+
+mk_serialization_t *mk_task_template_serialize(
+        const mk_task_template_t *ttpl) noexcept {
+    if (ttpl != nullptr) {
+        return mk_serialization_create(ttpl->dump());
+    }
     return nullptr;
 }
 
-// FIXME:
-//
-// 1. come gestisco la thread safety?
-//
-// 2. come gestisco la distruzione finale?
-
-char *mk_task_get_type(const mk_task_t *task) noexcept {
-    return ((task)) ? task->type.data() : nullptr;
-}
-
-// TODO: use nlohmann::json for annotations
-
-void mk_task_add_string_annotation(
-        mk_task_t *task, const char *key, const char *value) noexcept {
-    if ((task) && (key) && (value)) {
-        if (task->thread.is_joinable()) {
-            abort();
+mk_task_template_t *mk_task_template_parse(const char *str) noexcept {
+    if (str != nullptr) {
+        nlohmann::json json;
+        try {
+            json = nlohmann::json::parse(str);
+        } catch (const std::exception &) {
+            return nullptr;
         }
-        task->runnable->annotations[key] = value;
-    }
-}
-
-void mk_task_add_int_annotation(
-        mk_task_t *task, const char *key, int value) noexcept {
-    if ((task) && (key)) {
-        if (task->thread.is_joinable()) {
-            abort();
+        if (!validate_or_possibly_fix(json)) {
+            return nullptr;
         }
-        task->runnable->annotations[key] = value;
+        return new mk_task_template_t{std::move(json)};
+    }
+    return nullptr;
+}
+
+const char *mk_task_template_get_type(const mk_task_template_t *ttpl) noexcept {
+    if (ttpl != nullptr) {
+        return ttpl->at("type").get<std::string>().data();
+    }
+    return nullptr;
+}
+
+void mk_task_template_add_string_annotation(
+        mk_task_template_t *ttpl, const char *key, const char *value) noexcept {
+    if (ttpl != nullptr && key != nullptr && value != nullptr) {
+        ttpl->at("values").at("annotations")[key] = value;
     }
 }
 
-void mk_task_add_double_annotation(
-        mk_task_t *task, const char *key, double value) noexcept {
-    if ((task) && (key)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->annotations[key] = value;
+void mk_task_template_add_int_annotation(
+        mk_task_template_t *ttpl, const char *key, int value) noexcept {
+    if (ttpl != nullptr && key != nullptr) {
+        ttpl->at("values").at("annotations")[key] = value;
     }
 }
 
-void mk_task_add_input(mk_task_t *task, const char *input) noexcept {
-    if ((task) && (input)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->inputs.push_back(input);
+void mk_task_template_add_double_annotation(
+        mk_task_template_t *ttpl, const char *key, double value) noexcept {
+    if (ttpl != nullptr && key != nullptr) {
+        ttpl->at("values").at("annotations")[key] = value;
     }
 }
 
-void mk_task_add_input_file(mk_task_t *task, const char *path) noexcept {
-    if ((task) && (path)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->input_filepaths.push_back(path);
+void mk_task_template_add_input(
+        mk_task_template_t *ttpl, const char *input) noexcept {
+    if (ttpl != nullptr && input != nullptr) {
+        ttpl->at("values").at("inputs").push_back(input);
     }
 }
 
-void mk_task_set_verbosity(mk_task_t *task, const char *verbosity) noexcept {
-    if (!task || !verbosity) {
-        return;
-    }
-    if (task->thread.is_joinable()) {
-        abort();
-    }
-#define XX(verbosity_name)                                                     \
-    if (strcmp(#verbosity_name, verbosity) == 0) {                             \
-        task->runnable->logger->set_verbosity(MK_LOG_##verbosity_name);        \
-        return;                                                                \
-    }
-    MK_ENUM_VERBOSITY_LEVELS(XX)
-#undef XX
-    mk::warn("mk_task_set_verbosity: unknown verbosity: %s", verbosity);
-}
-
-void mk_task_set_log_file(mk_task_t *task, const char *path) noexcept {
-    if ((task) && (path)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->set_logfile(path);
+void mk_task_template_add_input_file(
+        mk_task_template_t *ttpl, const char *path) noexcept {
+    if (ttpl != nullptr && path != nullptr) {
+        ttpl->at("values").at("input_files").push_back(path);
     }
 }
 
-// TODO: improve the API of options
-
-void mk_task_set_string_option(
-        mk_task_t *task, const char *key, const char *value) noexcept {
-    if ((task) && (key) && (value)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->options->set_string(key, value);
+void mk_task_template_set_verbosity(
+        mk_task_template_t *ttpl, const char *verbosity) noexcept {
+    if (ttpl != nullptr && verbosity != nullptr) {
+        ttpl->at("values").at("verbosity") = verbosity;
     }
 }
 
-void mk_task_set_int_option(
-        mk_task_t *task, const char *key, int value) noexcept {
-    if ((task) && (key)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->options->set_int(key, value);
+void mk_task_template_set_log_file(
+        mk_task_template_t *ttpl, const char *path) noexcept {
+    if (ttpl != nullptr && path != nullptr) {
+        ttpl->at("values").at("log_file") = path;
     }
 }
 
-void mk_task_set_double_option(
-        mk_task_t *task, const char *key, double value) noexcept {
-    if ((task) && (key)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->options->set_double(key, value);
+void mk_task_template_set_string_option(
+        mk_task_template_t *ttpl, const char *key, const char *value) noexcept {
+    if (ttpl != nullptr && key != nullptr && value != nullptr) {
+        ttpl->at("values").at("options")[key] = value;
     }
 }
 
-MK_BOOL mk_task_set_options(
-        mk_task_t *task, const char *serialized_json) noexcept {
-    if (!task || !serialized_json) {
-        return false;
-    }
-    if (task->thread.is_joinable()) {
-        abort();
-    }
-    mk::warn("mk_task_set_options: not yet implemented");
-    return false; // XXX not yet implemented
-}
-
-void mk_task_set_output_file(mk_task_t *task, const char *path) noexcept {
-    if ((task) && (path)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->runnable->output_filepath(path);
+void mk_task_template_set_int_option(
+        mk_task_template_t *ttpl, const char *key, int value) noexcept {
+    if (ttpl != nullptr && key != nullptr) {
+        ttpl->at("values").at("options")[key] = value;
     }
 }
 
-void mk_task_enable_event(mk_task_t *task, const char *type) noexcept {
-    if (!task || !type) {
-        return;
-    }
-    if (task->thread.is_joinable()) {
-        abort();
-    }
-#define XX(event_name)                                                         \
-    if (strcmp(#event_name, type) == 0) {                                      \
-        task->enabled |= MK_EVENT_##event_name;                                \
-        return;                                                                \
-    }
-    MK_ENUM_EVENT_TYPES(XX)
-#undef XX
-    mk::warn("mk_task_enable_event: unknown event: %s", type);
-}
-
-void mk_task_enable_all_events(mk_task_t *task) noexcept {
-    if ((task)) {
-        if (task->thread.is_joinable()) {
-            abort();
-        }
-        task->enabled |= ~0;
+void mk_task_template_set_double_option(
+        mk_task_template_t *ttpl, const char *key, double value) noexcept {
+    if (ttpl != nullptr && key != nullptr) {
+        ttpl->at("values").at("options")[key] = value;
     }
 }
 
-static void mk_task_post(mk_task_t *task, const char *event_type,
-        std::function<void(mk_event_t &)> &&edit = nullptr) {
-    std::unique_ptr<mk_event_t> event{mk_event_create(event_type)};
-    if ((edit)) {
-        edit(*event);
+void mk_task_template_set_output_file(
+        mk_task_template_t *ttpl, const char *path) noexcept {
+    if (ttpl != nullptr && path != nullptr) {
+        ttpl->at("values").at("output_file") = path;
     }
-    {
-        std::unique_lock<std::mutex> lock{task->mutex};
-        task->deque.push_back(std::move(event));
-    }
-    task->condition.notify_one();
 }
 
-static void mk_task_main(mk_task_t *task) noexcept {
-    if ((task->enabled & MK_EVENT_LOG)) {
-        task->runner->log->on_log([task](uint32_t severity, const char *line) {
-            mk_task_post(task, "LOG", [&](mk_event_t &event) {
-                switch (severity) {
-                case MK_LOG_WARNING:
-                    event["verbosity"] = "WARNING";
-                    break;
-                case MK_LOG_INFO:
-                    event["verbosity"] = "INFO";
-                    break;
-                case MK_LOG_DEBUG:
-                    event["verbosity"] = "DEBUG";
-                    break;
-                case MK_LOG_DEBUG2:
-                    event["verbosity"] = "DEBUG2";
-                    break;
-                }
-                event["message"] = line;
-            });
-        });
+void mk_task_template_enable_event(
+        mk_task_template_t *ttpl, const char *type) noexcept {
+    if (ttpl != nullptr && type != nullptr) {
+        ttpl->at("values").at("enabled_events").push_back(type);
     }
-    if ((task->enabled & MK_EVENT_CONFIGURED)) {
-        // XXX
-    }
-    if ((task->enabled & MK_EVENT_PROGRESS)) {
-        task->runner->log->on_progress(
-                [task](double percentage, const char *message) {
-                    mk_task_post(task, "PROGRESS", [&](mk_event_t &event) {
-                        event["percentage"] = percentage;
-                        event["message"] = message;
-                    });
-                });
-    }
-    if ((task->enabled & MK_EVENT_PERFORMANCE)) {
-        // XXX
-    }
-    if ((task->enabled & MK_EVENT_MEASUREMENT_ERROR)) {
-        // XXX
-    }
-    if ((task->enabled & MK_EVENT_REPORT_SUBMISSION_ERROR)) {
-        // XXX
-    }
-    if ((task->enabled & MK_EVENT_RESULT)) {
-        task->runner->entry_cb = [task](std::string entry) {
-            mk_task_post(task, "RESULT", [&](mk_event_t &event) {
-                event.parse(entry); // FIXME: cannot put type in there then...
-            });
-        };
-    }
-    mk::DataUsage dusage;
-    task->runner->data_usage_cb = [task, &](DataUsage du) { dusage = du; };
-    // FIXME: code to compute error is broken.
-    mk::Error err = NoError();
-    bool final_state = false;
-    task->runnable->reactor->run_with_initial_event([&]() {
-        task->runnable->begin([&](Error error) {
-            if ((error)) {
-                err = error;
-            }
-            task->runnable->end([task](Error error) {
-                if ((error) && !err) {
-                    err = error;
-                }
-                final_state = true;
-            });
-        });
-    });
-    mk_task_post(task, "END", [&](mk_event_t &event) {
-        if (final_state && err == NoError()) {
-            event["failure"] = nullptr;
-        } else {
-            event["failure"] = err.reason;
-        }
-    });
+}
+
+void mk_task_template_enable_all_events(mk_task_template_t *ttpl) noexcept {
+    mk_task_template_enable_event("ALL");
+}
+
+void mk_task_template_destroy(const mk_task_template_t *ttpl) noexcept {
+    delete ttpl; // handles nullptr
+}
+
+struct mk_task_s {
+	std::condition_variable cond;
+	std::deque<std::unique_ptr<const mk_event_t>> deque;
+	int flags = 0;
+#define F_START (1 << 0)
+#define F_RUN (1 << 1)
+#define F_INTERRUPT (1 << 2)
+	std::mutex mutex;
+	mk::SharedPtr<mk::Reactor> reactor = mk::Reactor::make();
+	mk_task_template ttpl;
+};
+
+// We implement the most tricky code parts here and defer the less tricky
+// code parts to static functions available at the bottom of this file.
+static void mk_task_main_unlocked(mk_tast_t *task) noexcept;
+
+mk_task_t *mk_task_create(const mk_task_template_t *ttpl) noexcept {
+	if (ttpl == nullptr) {
+		return nullptr;
+	}
+	auto task = new mk_task_t{};
+	task->ttpl = *ttpl; // makes a copy
+	return ttpl;
 }
 
 void mk_task_start(mk_task_t *task) noexcept {
-    if ((task)) {
-        std::unique_lock<std::mutex> _{task->sync_start}; // Prevent races
-        if (task->thread.is_joinable()) {
-            return; // Start semantics is idempotent
+    if (task != nullptr) {
+        std::unique_lock<std::mutex> _{task->mutex};
+        if ((task->flags & F_START) != 0) {
+            return; // Prevent racing on starting a task
         }
-        task->thread = std::thread([task]() {
-            if ((task->enabled & MK_EVENT_QUEUED)) {
-                mk_task_post(task, "QUEUED");
-            }
-            ThreadsSemaphore::singleton()->wait();
-            if ((task->enabled & MK_EVENT_STARTED)) {
-                mk_task_post(task, "STARTED");
-            }
-            if (!task->interrupted) {
-                mk_task_main(task);
-            }
-            ThreadsSemaphone::singleton()->signal();
-            mk_task_post(task, "TERMINATED");
-        });
+        task->flags |= F_START | F_RUN;
+        Worker::default_tasks_queue()->call_in_thread(
+                mk::Logger::global(), [task]() {
+					task->reactor->run_with_initial_event([task]() {
+						{
+							std::unique_lock<std::mutex> _{task->mutex};
+							if ((task->flags & F_INTERRUPT) != 0) {
+								return; // Catch here early interrupt
+							}
+						}
+                    	mk_task_main_unlocked(task);
+					});
+					// Unblock people blocked on destroy or wait_for_next_event
+                    {
+                        std::unique_lock<std::mutex> _{task->mutex};
+                        task->flags &= ~F_RUN;
+                    }
+					// okay to call unlocked - must be ALL
+                    task->cond.notify_all();
+                });
     }
-}
-
-MK_BOOL mk_task_is_running(const mk_task_t *task) noexcept {
-    return (task) && task->thread.is_joinable();
 }
 
 void mk_task_interrupt(mk_task_t *task) noexcept {
-    if ((task)) {
-        task->interrupted = true; // Needed to interrupt a waiting task
-        assert((task->reactor));
-        task->reactor->stop();
+    if (task != nullptr) {
+        std::unique_lock<std::mutex> _{task->mutex};
+        if ((task->flags & (F_START | F_RUN)) != 0) {
+			// TODO(bassosimone): ideally it would simplify the implementation
+			// if we could (and we can) move this flag inside of the reactor.
+            task->flags |= F_INTERRUPT; // allow for early interrupt
+            task->reactor->stop();      // is thread safe
+        }
     }
 }
 
-mk_event_t *mk_task_wait_for_next_event(mk_task_t *task) noexcept {
-    if (!task) {
-        return nullptr;
+const mk_event_t *mk_task_wait_for_next_event(mk_task_t *task) noexcept {
+    if (task != nullptr) {
+        std::unique_lock<std::mutex> lock{task->mutex};
+		// Block here until we are stopped or we have something to process
+        task->cond.wait(lock, [&]() {
+            return (task->running & F_RUN) == 0 || !task->deque.empty();
+        });
+        if ((task->running & F_RUN) == 0) {
+            return mk_event_create("EOF");
+        }
+        auto evp = std::move(task->deque.front());
+        task->deque.pop_front();
+        return evp.release();
     }
-    if (!task->thread.is_joinable()) {
-        mk::warn("mk_task_wait_for_next_event: thread not running");
-        return nullptr;
-    }
-    std::unique_lock<std::mutex> lock{task->mutex};
-    task->condition.wait(lock, [task]() { return task->deque.count() > 0; });
-    auto front = std::move(task->deque.front());
-    task->deque.pop_front();
-    return front.release();
+    return nullptr;
+}
+
+static void mk_task_post_event(
+        mk_task_t *task, std::unique_ptr<const mk_event_t> event) noexcept {
+	// internal function so just assert
+	assert(task);
+	assert(event);
+	// Post event and unblock people blocked on destroy or wait_for_next_event
+	{
+    	std::unique_lock<std::mutex> lock{task->mutex};
+		task->deque.push_back(std::move(event));
+	}
+	task->cond.notify_all(); // okay to call unlocked - must be ALL
 }
 
 void mk_task_destroy(mk_task_t *task) noexcept {
-    if ((task) && task->thread.is_joinable()) {
-        mk_task_interrupt(task);
-        task->thread.join();
+    if (task != nullptr) {
+        {
+            std::unique_lock<std::mutex> lock{task->mutex};
+            if ((taks->flags & F_START) != 0) {
+				// If we've been started, wait until we are stopped.
+                task->cond.wait(
+                        lock, [task]() { return (task->flags & F_RUN) == 0; });
+            }
+        }
+        // We must destroy with unlocked mutex
+        delete task;
     }
-    delete task; // Note that `delete` handles nullptr gracefully
+}
+
+static void mk_task_main_unlocked(mk_tast_t *task) noexcept {
+	// TODO(bassosimone): here we will implement the task. It should basically
+	// get the task template and configure the task accordingly. Routing the
+	// events occurring as callbacks to events poste on the queue should be easy
+	// given that the tricky part are already implemented above.
 }
