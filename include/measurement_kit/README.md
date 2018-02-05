@@ -63,7 +63,7 @@ gracefully, typically returning `NULL` back.
 
 ## Index
 
-The remainder of this file documents the `measurement_kit/ffi.h` API
+The remainder of this file documents the [measurement_kit/ffi.h](ffi.h) API
 header using a sort of literate programming. We will cover all the
 symbols included into the API and explain how to use them.
 
@@ -401,7 +401,7 @@ MK_PUBLIC void mk_task_set_output_file(
 ```
 
 As stated, when running a task will emit events. By default, only the
-`"TERMINATE"` event &mdash; which signals that a task is done &mdash; is
+`"END"` event &mdash; which signals that a task is done &mdash; is
 enabled, but with `mk_task_enable_event` you can enable more events. All the
 available events are described below. You can also `mk_task_enable_all_events`,
 if you prefer.
@@ -448,7 +448,7 @@ MK_PUBLIC void mk_task_interrupt(mk_task_t *task) MK_NOEXCEPT;
 Finally, while a task is running, you can receive its events by
 calling `mk_task_wait_for_next_event()`. This is a blocking call that will
 return only when the next enabled event occurs. If you do not enable any
-event, you will still receive the `"TERMINATE"` event, since this event is
+event, you will still receive the `"END"` event, since this event is
 always enabled. Calling this function before you start a task or after a task
 is terminated will return `NULL`. Note that _you own_ the event returned by
 `mk_task_wait_for_next_event()` and it is your responsibility to call
@@ -472,7 +472,9 @@ _wait_ until no thread is using the `mk_task_t` before freeing resources.
 
 ## MK_ENUM_VERBOSITY_LEVELS
 
-The possible verbosity level strings are:
+The possible verbosity level strings are listed below. In the header file
+they are defined using a [X macro](https://en.wikipedia.org/wiki/X_Macro) to
+allow us to easily keep in sync strings and internal defines.
 
 ```C
 #define MK_ENUM_VERBOSITY_LEVELS(XX)                                           \
@@ -497,34 +499,32 @@ The possible verbosity level strings are:
 ## MK_ENUM_EVENTS
 
 The possible event types are listed below. We also have indicated
-the number of times an event should be emitted. Of course, since
-all events but the "TERMINATE" event are not enabled, they will not
-be emitted unless they are enabled.
-
-XXX: event names are still very random.
+the number of times an event should be emitted. Of course, _events will
+not be emitted unless they are enabled_ (the only enabled by default
+event is the "END" event).
 
 ```C
 #define MK_ENUM_EVENT_TYPES(XX)                                                \
-    XX(queued)                                                                 \
-    XX(started)                                                                \
-    XX(log)                                                                    \
-    XX(configured)                                                             \
-    XX(progress)                                                               \
-    XX(performance)                                                            \
-    XX(measurement_error)                                                      \
-    XX(report_submission_error)                                                \
-    XX(result)                                                                 \
-    XX(end)
+    XX(QUEUED)                                                                 \
+    XX(STARTED)                                                                \
+    XX(LOG)                                                                    \
+    XX(CONFIGURED)                                                             \
+    XX(PROGRESS)                                                               \
+    XX(PERFORMANCE)                                                            \
+    XX(MEASUREMENT_ERROR)                                                      \
+    XX(REPORT_SUBMISSION_ERROR)                                                \
+    XX(RESULT)                                                                 \
+    XX(END)
 
 ```
 
-- `"queued"`: emitted once when the task has been queued. The corresponding
+- `"QUEUED"`: emitted once when the task has been queued. The corresponding
    JSON is empty.
 
-- `"started"`: emitted once when the task has been started. The corresponding
+- `"STARTED"`: emitted once when the task has been started. The corresponding
    JSON is empty.
 
-- `"log"`: emitted whenever the task has generated a log line. The
+- `"LOG"`: emitted whenever the task has generated a log line. The
    corresponding JSON is like:
 
 ```JSON
@@ -534,7 +534,7 @@ XXX: event names are still very random.
 }
 ```
 
-- `"configured"`: emitted once, for tasks that need configuration (i.e. to
+- `"CONFIGURED"`: emitted once, for tasks that need configuration (i.e. to
   discover what test helper and collector servers to use), when this
   information becomes available during the task lifecycle. The corresponding
   JSON is like:
@@ -549,7 +549,7 @@ XXX: event names are still very random.
 
 ```
 
-- `"progress"`: emitted whenever the task has made some progress. The
+- `"PROGRESS"`: emitted whenever the task has made some progress. The
   corresponding JSON is like:
 
 ```JSON
@@ -560,7 +560,7 @@ XXX: event names are still very random.
 }
 ```
 
-- `"performance"`: emitted by test that measure speed, while they are measuring
+- `"PERFORMANCE"`: emitted by test that measure speed, while they are measuring
   the download or upload speed, to allow apps to programmatically update
   their UI with the currently measured speed. The JSON is like:
 
@@ -573,7 +573,7 @@ XXX: event names are still very random.
 }
 ```
 
-- `"measurement_error"`: emitted when a measurement fail, so that the app
+- `"MEASUREMENT_ERROR"`: emitted when a measurement fail, so that the app
    can perhaps update its UI accordingly. The JSON is described below. Note
    that, especially for censorship events, there can possibly be several
    events like this emitted. While it is true that you can parse the
@@ -588,7 +588,7 @@ XXX: event names are still very random.
 }
 ```
 
-- `"report_submission_error"`: emitted when a report cannot be submitted, so
+- `"REPORT_SUBMISSION_ERROR"`: emitted when a report cannot be submitted, so
   that perhaps the app can manage to submit the report later. The JSON
   of this event is described below. The full report is included into the
   event, such that one can set it aside and use another task later to
@@ -602,7 +602,7 @@ XXX: event names are still very random.
 }
 ```
 
-- `"result"`: emitted whenever the task generates a result (hence possibly
+- `"RESULT"`: emitted whenever the task generates a result (hence possibly
   emitted more than once for tasks that cycle over an input list). The
   corresponding JSON is the result JSON emitted by the task, according to
   the specification at github.com/TheTorProject/ooni-spec. Since the JSON
@@ -610,7 +610,7 @@ XXX: event names are still very random.
   parse it successfully using the programmatical API and usage of a JSON
   parser to deserialize and process the event is recommended.
 
-- `"end"`: emitted just once when the task terminates. The corresponding
+- `"END"`: emitted just once when the task terminates. The corresponding
   JSON is described below. Note that here the failure indicates an hard
   failure that prevented the whole task to be run, as opposed to a finer
   grained failure that can cause a measurement to fail.
@@ -632,33 +632,31 @@ likely be removed in future versions of Measurement Kit.
 
 The possible task types are listed below.
 
-TODO: Task names identify classes and should be in CamelCase.
-
 ```C
 #define MK_ENUM_TASK_TYPES(XX)                                                 \
-    XX(dash)                                                                   \
-    XX(captive_portal)                                                         \
-    XX(dns_injection)                                                          \
-    XX(facebook_messenger)                                                     \
-    XX(http_header_field_manipulation)                                         \
-    XX(http_invalid_request_line)                                              \
-    XX(meek_fronted_requests)                                                  \
-    XX(multi_ndt)                                                              \
-    XX(ndt)                                                                    \
-    XX(tcp_connect)                                                            \
-    XX(telegram)                                                               \
-    XX(web_connectivity)                                                       \
-    XX(whatsapp)                                                               \
+    XX(DASH)                                                                   \
+    XX(CAPTIVE_PORTAL)                                                         \
+    XX(DNS_INJECTION)                                                          \
+    XX(FACEBOOK_MESSENGER)                                                     \
+    XX(HTTP_HEADER_FIELD_MANIPULATION)                                         \
+    XX(HTTP_INVALID_REQUEST_LINE)                                              \
+    XX(MEEK_FRONTED_REQUESTS)                                                  \
+    XX(MULTI_NDT)                                                              \
+    XX(NDT)                                                                    \
+    XX(TCP_CONNECT)                                                            \
+    XX(TELEGRAM)                                                               \
+    XX(WEB_CONNECTIVITY)                                                       \
+    XX(WHATSAPP)                                                               \
                                                                                \
-    XX(opos_register)                                                          \
-    XX(opos_update)                                                            \
-    XX(opos_list_tasks)                                                        \
-    XX(opos_get_task)                                                          \
-    XX(opos_accept_task)                                                       \
-    XX(opos_reject_task)                                                       \
-    XX(opos_task_done)                                                         \
+    XX(OPOS_REGISTER)                                                          \
+    XX(OPOS_UPDATE)                                                            \
+    XX(OPOS_LIST_TASKS)                                                        \
+    XX(OPOS_GET_TASK)                                                          \
+    XX(OPOS_ACCEPT_TASK)                                                       \
+    XX(OPOS_REJECT_TASK)                                                       \
+    XX(OPOS_TASK_DONE)                                                         \
                                                                                \
-    XX(find_probe_location)
+    XX(FIND_PROBE_LOCATION)
 
 ```
 

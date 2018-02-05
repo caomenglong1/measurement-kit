@@ -148,41 +148,41 @@ MK_PUBLIC void mk_task_destroy(mk_task_t *task) MK_NOEXCEPT;
     XX(DEBUG2)
 
 #define MK_ENUM_EVENT_TYPES(XX)                                                \
-    XX(queued)                                                                 \
-    XX(started)                                                                \
-    XX(log)                                                                    \
-    XX(configured)                                                             \
-    XX(progress)                                                               \
-    XX(performance)                                                            \
-    XX(measurement_error)                                                      \
-    XX(report_submission_error)                                                \
-    XX(result)                                                                 \
-    XX(end)
+    XX(QUEUED)                                                                 \
+    XX(STARTED)                                                                \
+    XX(LOG)                                                                    \
+    XX(CONFIGURED)                                                             \
+    XX(PROGRESS)                                                               \
+    XX(PERFORMANCE)                                                            \
+    XX(MEASUREMENT_ERROR)                                                      \
+    XX(REPORT_SUBMISSION_ERROR)                                                \
+    XX(RESULT)                                                                 \
+    XX(END)
 
 #define MK_ENUM_TASK_TYPES(XX)                                                 \
-    XX(dash)                                                                   \
-    XX(captive_portal)                                                         \
-    XX(dns_injection)                                                          \
-    XX(facebook_messenger)                                                     \
-    XX(http_header_field_manipulation)                                         \
-    XX(http_invalid_request_line)                                              \
-    XX(meek_fronted_requests)                                                  \
-    XX(multi_ndt)                                                              \
-    XX(ndt)                                                                    \
-    XX(tcp_connect)                                                            \
-    XX(telegram)                                                               \
-    XX(web_connectivity)                                                       \
-    XX(whatsapp)                                                               \
+    XX(DASH)                                                                   \
+    XX(CAPTIVE_PORTAL)                                                         \
+    XX(DNS_INJECTION)                                                          \
+    XX(FACEBOOK_MESSENGER)                                                     \
+    XX(HTTP_HEADER_FIELD_MANIPULATION)                                         \
+    XX(HTTP_INVALID_REQUEST_LINE)                                              \
+    XX(MEEK_FRONTED_REQUESTS)                                                  \
+    XX(MULTI_NDT)                                                              \
+    XX(NDT)                                                                    \
+    XX(TCP_CONNECT)                                                            \
+    XX(TELEGRAM)                                                               \
+    XX(WEB_CONNECTIVITY)                                                       \
+    XX(WHATSAPP)                                                               \
                                                                                \
-    XX(opos_register)                                                          \
-    XX(opos_update)                                                            \
-    XX(opos_list_tasks)                                                        \
-    XX(opos_get_task)                                                          \
-    XX(opos_accept_task)                                                       \
-    XX(opos_reject_task)                                                       \
-    XX(opos_task_done)                                                         \
+    XX(OPOS_REGISTER)                                                          \
+    XX(OPOS_UPDATE)                                                            \
+    XX(OPOS_LIST_TASKS)                                                        \
+    XX(OPOS_GET_TASK)                                                          \
+    XX(OPOS_ACCEPT_TASK)                                                       \
+    XX(OPOS_REJECT_TASK)                                                       \
+    XX(OPOS_TASK_DONE)                                                         \
                                                                                \
-    XX(find_probe_location)
+    XX(FIND_PROBE_LOCATION)
 
 #define MK_ENUM_STRING_OPTIONS(XX)                                             \
     XX(bouncer_base_url)                                                       \
