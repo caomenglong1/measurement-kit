@@ -241,7 +241,7 @@ mk_task_template_t *mk_task_template_create(const char *type) noexcept {
     nlohmann::json json;
     json["type"] = type;
     if (!validate_or_possibly_fix_json(json)) {
-        abort();
+        abort(); // this should not occur
     }
     return new mk_task_template_t{std::move(json)};
 }
