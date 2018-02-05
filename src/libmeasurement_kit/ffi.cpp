@@ -38,6 +38,7 @@ struct mk_event_s : public nlohmann::json {
 
 static mk_event_t *mk_event_create(const char *type) noexcept {
     auto evp = std::make_unique<mk_event_t>();
+    // TODO(bassosimone): make sure the event type is valid.
     (*evp)["type"] = type;
     (*evp)["values"] = nlohmann::json::object();
     return evp.release();
