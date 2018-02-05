@@ -155,6 +155,7 @@ mk_serialization_t *mk_event_serialize_entry(
         const mk_event_t *evp, const char *key) noexcept {
     if (evp != nullptr && key != nullptr) {
         try {
+            // must serialize because this is a different lifecycle
             return mk_serialization_create(evp->at("values").at(key).dump());
         } catch (const std::exception &) {
             /* NOTHING */;
@@ -165,6 +166,7 @@ mk_serialization_t *mk_event_serialize_entry(
 
 mk_serialization_t *mk_event_serialize(const mk_event_t *evp) noexcept {
     if (evp != nullptr) {
+        // must serialize because this is a different lifecycle
         return mk_serialization_create(evp->dump());
     }
     return nullptr;
