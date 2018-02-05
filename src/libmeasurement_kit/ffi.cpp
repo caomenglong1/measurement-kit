@@ -15,164 +15,88 @@
 
 double mk_version() noexcept { MK_VERSION_MAJOR##.##MK_VERSION_MINOR; }
 
-struct mk_serialization_t : public std::string {
-    using std::string::string;
-};
-
-static mk_serialization_t *mk_serialization_create(
-        const std::string &s) noexcept {
-    return new mk_serialization_t{s};
-}
-
-const char *mk_serialization_get_string(const mk_serialization_t *s) noexcept {
-    return ((s)) ? s.data() : nullptr;
-}
-
-void mk_serialization_destroy(mk_serialization_t *s) noexcept {
-    delete s; // handles nullptr
-}
-
 struct mk_event_s : public nlohmann::json {
     using nlohmann::json::json;
 };
 
 static mk_event_t *mk_event_create(const char *type) noexcept {
-    auto evp = std::make_unique<mk_event_t>();
-    // TODO(bassosimone): make sure the event type is valid.
-    (*evp)["type"] = type;
-    (*evp)["values"] = nlohmann::json::object();
-    return evp.release();
-}
-
-MK_BOOL mk_event_has_null_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).is_null();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
+#define MK_EVENT_CREATE(event_type)                                            \
+    if (strcmp(#event_type, type) == 0) {                                      \
+        auto evp = std::make_unique<mk_event_t>();                             \
+        (*evp)["type"] = type;                                                 \
+        (*evp)["values"] = nlohmann::json::object();                           \
+        return evp.release();                                                  \
     }
-    return false;
-}
-
-MK_BOOL mk_event_has_int_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).is_number_integer();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
-    return false;
-}
-
-MK_BOOL mk_event_has_double_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).is_number_float();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
-    return false;
-}
-
-MK_BOOL mk_event_has_string_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).is_string();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
-    return false;
-}
-
-MK_BOOL mk_event_has_array_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).is_array();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
-    return false;
-}
-
-MK_BOOL mk_event_has_object_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).is_object();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
-    return false;
-}
-
-int mk_event_get_int_entry(const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).get<int>();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
-    return 0;
-}
-
-double mk_event_get_double_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).get<double>();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
-    return 0.0;
-}
-
-const char *mk_event_get_string_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            return evp->at("values").at(key).get<std::string>().data();
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
-    }
+    MK_ENUM_EVENT_TYPES(MK_EVENT_CREATE)
+#undef MK_EVENT_CREATE
     return nullptr;
 }
 
-// TODO(bassosimone): make sure these serialization are actually needed. It may
-// be that the temporary object is valid for some time, but still this strikes
-// me as an API place where one can make mistakes, as really it is a different
-// lifecycle, no?
-
-mk_serialization_t *mk_event_serialize_entry(
-        const mk_event_t *evp, const char *key) noexcept {
-    if (evp != nullptr && key != nullptr) {
-        try {
-            // must serialize because this is a different lifecycle
-            return mk_serialization_create(evp->at("values").at(key).dump());
-        } catch (const std::exception &) {
-            /* NOTHING */;
-        }
+#define MK_EVENT_HAS_ENTRY_IMPL(type_name, nlohmann_is_of_type)                \
+    MK_BOOL mk_event_has_##type_name##_entry(                                  \
+            const mk_event_t *evp, const char *key) noexcept {                 \
+        if (evp != nullptr && key != nullptr) {                                \
+            try {                                                              \
+                return evp->at("values").at(key).nlohmann_is_of_type();        \
+            } catch (const std::exception &) {                                 \
+                /* NOTHING */;                                                 \
+            }                                                                  \
+        }                                                                      \
+        return false;                                                          \
     }
-    return nullptr;
-}
 
-mk_serialization_t *mk_event_serialize(const mk_event_t *evp) noexcept {
+MK_EVENT_HAS_ENTRY_IMPL(null, is_null)
+MK_EVENT_HAS_ENTRY_IMPL(int, is_number_integer)
+MK_EVENT_HAS_ENTRY_IMPL(double, is_number_float)
+MK_EVENT_HAS_ENTRY_IMPL(string, is_string)
+MK_EVENT_HAS_ENTRY_IMPL(array, is_array)
+MK_EVENT_HAS_ENTRY_IMPL(object, is_object)
+
+#undef MK_EVENT_HAS_ENTRY_IMPL
+
+// Important! In some of the following code we're going to return `const char`
+// pointers derived from _temporary_ strings. In C++98, these are guaranteed
+// to last until the full chain of calls that lead to obtain the `const char *`
+// finishes its execution. That is, it is _not_ safe to store these pointers
+// and reuse them later. But it should be safe to return them and let the caller
+// decide what would be the proper policy to store such pointers.
+//
+// See <https://stackoverflow.com/a/10006989>.
+
+#define MK_EVENT_GETTER_IMPL(return_type, name, modifier)                      \
+    return_type mk_event_get_##name##_entry(                                   \
+            const mk_event_t *evp, const char *key) noexcept {                 \
+        if (evp != nullptr && key != nullptr) {                                \
+            try {                                                              \
+                return modifier(evp->at("values"));                            \
+            } catch (const std::exception &) {                                 \
+                /* NOTHING */;                                                 \
+            }                                                                  \
+        }                                                                      \
+        return (return_type)0;                                                 \
+    }
+
+#define AS_INT(v) (v).get<int>()
+MK_EVENT_GETTER_IMPL(int, int, AS_INT)
+#undef AS_INT
+
+#define AS_DOUBLE(v) (v).get<double>()
+MK_EVENT_GETTER_IMPL(double, double, AS_DOUBLE)
+#undef AS_DOUBLE
+
+#define AS_TEMPORARY_CSTRING(v) (v).get<std::string>().data()
+MK_EVENT_GETTER_IMPL(const char *, string, AS_TEMPORARY_CSTRING)
+#undef AS_TEMPORARY_CSTRING
+
+#define AS_TEMPORARY_DUMP(v) (v).dump().data()
+MK_EVENT_GETTER_IMPL(const char *, serialized, AS_TEMPORARY_DUMP)
+#undef AS_TEMPORARY_DUMP
+
+#undef MK_EVENT_GETTER_IMPL // tidy
+
+const char *mk_event_serialize(const mk_event_t *evp) noexcept {
     if (evp != nullptr) {
-        // must serialize because this is a different lifecycle
-        return mk_serialization_create(evp->dump());
+        return evp->dump().data(); // temporary!
     }
     return nullptr;
 }
@@ -181,15 +105,15 @@ void mk_event_destroy(const mk_event_t *evp) noexcept {
     delete evp; // handles nullptr
 }
 
-struct mk_task_template_s : public nlohmann::json {
+struct mk_settings_s : public nlohmann::json {
     using nlohmann::json::json;
 };
 
-#define TOPLEVEL_KEYS(XX)                                                      \
+#define ENUM_TOPLEVEL_KEYS(XX)                                                 \
     XX(type, string, "")                                                       \
     XX(values, object, object())
 
-#define VALUES_KEYS(XX)                                                        \
+#define ENUM_VALUES_KEYS(XX)                                                   \
     XX(annotations, object, object())                                          \
     XX(inputs, array, array())                                                 \
     XX(input_files, array, array())                                            \
@@ -224,37 +148,36 @@ static bool validate_or_possibly_fix(nlohmann::json &json) noexcept {
         mk::warn("invalid type for root object");
         return false;
     }
-    TOPLEVEL_KEYS(DO_TOPLEVEL_KEYS)
-    VALUES_KEYS(DO_VALUES_KEYS)
+    ENUM_TOPLEVEL_KEYS(DO_TOPLEVEL_KEYS)
+    ENUM_VALUES_KEYS(DO_VALUES_KEYS)
     return true;
 }
 
-#undef TOPLEVEL_KEYS
+// big tidy
+#undef ENUM_TOPLEVEL_KEYS
 #undef MK_TEMPLAYE_VALUES_KEYS
 #undef DO_TOPLEVEL_KEYS
 #undef DO_VALUES_KEYS
 
-mk_task_template_t *mk_task_template_create(const char *type) noexcept {
+mk_settings_t *mk_settings_create(const char *type) noexcept {
     if (type == nullptr) {
         return nullptr;
     }
-    nlohmann::json json;
-    json["type"] = type;
+    nlohmann::json json = nlohmann::json::object{{"type", type}};
     if (!validate_or_possibly_fix_json(json)) {
         abort(); // this should not occur
     }
-    return new mk_task_template_t{std::move(json)};
+    return new mk_settings_t{std::move(json)};
 }
 
-mk_serialization_t *mk_task_template_serialize(
-        const mk_task_template_t *ttpl) noexcept {
+const char *mk_settings_serialize(const mk_settings_t *ttpl) noexcept {
     if (ttpl != nullptr) {
-        return mk_serialization_create(ttpl->dump());
+        return ttpl->dump().data(); // temporary!
     }
     return nullptr;
 }
 
-mk_task_template_t *mk_task_template_parse(const char *str) noexcept {
+mk_settings_t *mk_settings_parse(const char *str) noexcept {
     if (str != nullptr) {
         nlohmann::json json;
         try {
@@ -265,107 +188,104 @@ mk_task_template_t *mk_task_template_parse(const char *str) noexcept {
         if (!validate_or_possibly_fix(json)) {
             return nullptr;
         }
-        return new mk_task_template_t{std::move(json)};
+        return new mk_settings_t{std::move(json)};
     }
     return nullptr;
 }
 
-const char *mk_task_template_get_type(const mk_task_template_t *ttpl) noexcept {
+const char *mk_settings_get_type(const mk_settings_t *ttpl) noexcept {
     if (ttpl != nullptr) {
-        return ttpl->at("type").get<std::string>().data();
+        return ttpl->at("type").get<std::string>().data(); // temporary!
     }
     return nullptr;
 }
 
-void mk_task_template_add_string_annotation(
-        mk_task_template_t *ttpl, const char *key, const char *value) noexcept {
+void mk_settings_add_string_annotation(
+        mk_settings_t *ttpl, const char *key, const char *value) noexcept {
     if (ttpl != nullptr && key != nullptr && value != nullptr) {
         ttpl->at("values").at("annotations")[key] = value;
     }
 }
 
-void mk_task_template_add_int_annotation(
-        mk_task_template_t *ttpl, const char *key, int value) noexcept {
+void mk_settings_add_int_annotation(
+        mk_settings_t *ttpl, const char *key, int value) noexcept {
     if (ttpl != nullptr && key != nullptr) {
         ttpl->at("values").at("annotations")[key] = value;
     }
 }
 
-void mk_task_template_add_double_annotation(
-        mk_task_template_t *ttpl, const char *key, double value) noexcept {
+void mk_settings_add_double_annotation(
+        mk_settings_t *ttpl, const char *key, double value) noexcept {
     if (ttpl != nullptr && key != nullptr) {
         ttpl->at("values").at("annotations")[key] = value;
     }
 }
 
-void mk_task_template_add_input(
-        mk_task_template_t *ttpl, const char *input) noexcept {
+void mk_settings_add_input(mk_settings_t *ttpl, const char *input) noexcept {
     if (ttpl != nullptr && input != nullptr) {
         ttpl->at("values").at("inputs").push_back(input);
     }
 }
 
-void mk_task_template_add_input_file(
-        mk_task_template_t *ttpl, const char *path) noexcept {
+void mk_settings_add_input_file(
+        mk_settings_t *ttpl, const char *path) noexcept {
     if (ttpl != nullptr && path != nullptr) {
         ttpl->at("values").at("input_files").push_back(path);
     }
 }
 
-void mk_task_template_set_verbosity(
-        mk_task_template_t *ttpl, const char *verbosity) noexcept {
+void mk_settings_set_verbosity(
+        mk_settings_t *ttpl, const char *verbosity) noexcept {
     if (ttpl != nullptr && verbosity != nullptr) {
         ttpl->at("values").at("verbosity") = verbosity;
     }
 }
 
-void mk_task_template_set_log_file(
-        mk_task_template_t *ttpl, const char *path) noexcept {
+void mk_settings_set_log_file(mk_settings_t *ttpl, const char *path) noexcept {
     if (ttpl != nullptr && path != nullptr) {
         ttpl->at("values").at("log_file") = path;
     }
 }
 
-void mk_task_template_set_string_option(
-        mk_task_template_t *ttpl, const char *key, const char *value) noexcept {
+void mk_settings_set_string_option(
+        mk_settings_t *ttpl, const char *key, const char *value) noexcept {
     if (ttpl != nullptr && key != nullptr && value != nullptr) {
         ttpl->at("values").at("options")[key] = value;
     }
 }
 
-void mk_task_template_set_int_option(
-        mk_task_template_t *ttpl, const char *key, int value) noexcept {
+void mk_settings_set_int_option(
+        mk_settings_t *ttpl, const char *key, int value) noexcept {
     if (ttpl != nullptr && key != nullptr) {
         ttpl->at("values").at("options")[key] = value;
     }
 }
 
-void mk_task_template_set_double_option(
-        mk_task_template_t *ttpl, const char *key, double value) noexcept {
+void mk_settings_set_double_option(
+        mk_settings_t *ttpl, const char *key, double value) noexcept {
     if (ttpl != nullptr && key != nullptr) {
         ttpl->at("values").at("options")[key] = value;
     }
 }
 
-void mk_task_template_set_output_file(
-        mk_task_template_t *ttpl, const char *path) noexcept {
+void mk_settings_set_output_file(
+        mk_settings_t *ttpl, const char *path) noexcept {
     if (ttpl != nullptr && path != nullptr) {
         ttpl->at("values").at("output_file") = path;
     }
 }
 
-void mk_task_template_enable_event(
-        mk_task_template_t *ttpl, const char *type) noexcept {
+void mk_settings_enable_event(mk_settings_t *ttpl, const char *type) noexcept {
     if (ttpl != nullptr && type != nullptr) {
         ttpl->at("values").at("enabled_events").push_back(type);
     }
 }
 
-void mk_task_template_enable_all_events(mk_task_template_t *ttpl) noexcept {
-    mk_task_template_enable_event("ALL");
+void mk_settings_enable_all_events(mk_settings_t *ttpl) noexcept {
+    mk_settings_enable_event("ALL");
 }
 
-void mk_task_template_destroy(const mk_task_template_t *ttpl) noexcept {
+void mk_settings_destroy(const mk_settings_t *ttpl) noexcept {
     delete ttpl; // handles nullptr
 }
 
@@ -373,24 +293,24 @@ struct mk_task_s {
     std::condition_variable cond;
     std::deque<std::unique_ptr<const mk_event_t>> deque;
     int flags = 0;
-#define F_START (1 << 0)
-#define F_RUN (1 << 1)
-#define F_INTERRUPT (1 << 2)
+#define F_START (1 << 0)     // prevent racing on start
+#define F_RUN (1 << 1)       // ensure we delete after we've stopped
+#define F_INTERRUPT (1 << 2) // allow for early interrupt
     std::mutex mutex;
     mk::SharedPtr<mk::Reactor> reactor = mk::Reactor::make();
-    mk_task_template ttpl;
+    mk_settings ttpl;
 };
 
 // We implement the most tricky code parts here and defer the less tricky
 // code parts to static functions available at the bottom of this file.
 static void mk_task_main_unlocked(mk_tast_t *task) noexcept;
 
-mk_task_t *mk_task_create(const mk_task_template_t *ttpl) noexcept {
+mk_task_t *mk_task_create(const mk_settings_t *ttpl) noexcept {
     if (ttpl == nullptr) {
         return nullptr;
     }
     auto task = new mk_task_t{};
-    task->ttpl = *ttpl; // makes a copy
+    task->ttpl = *ttpl; // makes a copy - separates the lifecycles
     return ttpl;
 }
 
@@ -421,7 +341,7 @@ void mk_task_start(mk_task_t *task) noexcept {
                         std::unique_lock<std::mutex> _{task->mutex};
                         task->flags &= ~F_RUN;
                     }
-                    // okay to call unlocked - must be ALL
+                    // okay to call unlocked - must be notify_all()!!!
                     task->cond.notify_all();
                 });
     }
@@ -432,7 +352,9 @@ void mk_task_interrupt(mk_task_t *task) noexcept {
         std::unique_lock<std::mutex> _{task->mutex};
         if ((task->flags & (F_START | F_RUN)) != 0) {
             // TODO(bassosimone): ideally it would simplify the implementation
-            // if we could (and we can) move this flag inside of the reactor.
+            // if we could (and we can) move this flag inside of the reactor,
+            // which we can do quite easily as a refactoring, implementing the
+            // Reactor::interrupt() method as a non-restartable stop().
             task->flags |= F_INTERRUPT; // allow for early interrupt
             task->reactor->stop();      // is thread safe
         }
@@ -466,7 +388,7 @@ static void mk_task_post_event(
         std::unique_lock<std::mutex> lock{task->mutex};
         task->deque.push_back(std::move(event));
     }
-    task->cond.notify_all(); // okay to call unlocked - must be ALL
+    task->cond.notify_all(); // okay to call unlocked - must be notify_all()!!!
 }
 
 void mk_task_destroy(mk_task_t *task) noexcept {
@@ -475,6 +397,10 @@ void mk_task_destroy(mk_task_t *task) noexcept {
             std::unique_lock<std::mutex> lock{task->mutex};
             if ((taks->flags & F_START) != 0) {
                 // If we've been started, wait until we are stopped.
+                //
+                // TODO(bassosimone): as explained above, this would be more
+                // robust if we could express it as joining a thread after
+                // we have checked whether the thread was joinable.
                 task->cond.wait(
                         lock, [task]() { return (task->flags & F_RUN) == 0; });
             }
