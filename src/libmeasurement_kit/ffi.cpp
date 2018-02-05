@@ -370,15 +370,15 @@ void mk_task_template_destroy(const mk_task_template_t *ttpl) noexcept {
 }
 
 struct mk_task_s {
-	std::condition_variable cond;
-	std::deque<std::unique_ptr<const mk_event_t>> deque;
-	int flags = 0;
+    std::condition_variable cond;
+    std::deque<std::unique_ptr<const mk_event_t>> deque;
+    int flags = 0;
 #define F_START (1 << 0)
 #define F_RUN (1 << 1)
 #define F_INTERRUPT (1 << 2)
-	std::mutex mutex;
-	mk::SharedPtr<mk::Reactor> reactor = mk::Reactor::make();
-	mk_task_template ttpl;
+    std::mutex mutex;
+    mk::SharedPtr<mk::Reactor> reactor = mk::Reactor::make();
+    mk_task_template ttpl;
 };
 
 // We implement the most tricky code parts here and defer the less tricky
@@ -386,12 +386,12 @@ struct mk_task_s {
 static void mk_task_main_unlocked(mk_tast_t *task) noexcept;
 
 mk_task_t *mk_task_create(const mk_task_template_t *ttpl) noexcept {
-	if (ttpl == nullptr) {
-		return nullptr;
-	}
-	auto task = new mk_task_t{};
-	task->ttpl = *ttpl; // makes a copy
-	return ttpl;
+    if (ttpl == nullptr) {
+        return nullptr;
+    }
+    auto task = new mk_task_t{};
+    task->ttpl = *ttpl; // makes a copy
+    return ttpl;
 }
 
 void mk_task_start(mk_task_t *task) noexcept {
@@ -403,21 +403,21 @@ void mk_task_start(mk_task_t *task) noexcept {
         task->flags |= F_START | F_RUN;
         Worker::default_tasks_queue()->call_in_thread(
                 mk::Logger::global(), [task]() {
-					task->reactor->run_with_initial_event([task]() {
-						{
-							std::unique_lock<std::mutex> _{task->mutex};
-							if ((task->flags & F_INTERRUPT) != 0) {
-								return; // Catch here early interrupt
-							}
-						}
-                    	mk_task_main_unlocked(task);
-					});
-					// Unblock people blocked on destroy or wait_for_next_event
+                    task->reactor->run_with_initial_event([task]() {
+                        {
+                            std::unique_lock<std::mutex> _{task->mutex};
+                            if ((task->flags & F_INTERRUPT) != 0) {
+                                return; // Catch here early interrupt
+                            }
+                        }
+                        mk_task_main_unlocked(task);
+                    });
+                    // Unblock people blocked on destroy or wait_for_next_event
                     {
                         std::unique_lock<std::mutex> _{task->mutex};
                         task->flags &= ~F_RUN;
                     }
-					// okay to call unlocked - must be ALL
+                    // okay to call unlocked - must be ALL
                     task->cond.notify_all();
                 });
     }
@@ -427,8 +427,8 @@ void mk_task_interrupt(mk_task_t *task) noexcept {
     if (task != nullptr) {
         std::unique_lock<std::mutex> _{task->mutex};
         if ((task->flags & (F_START | F_RUN)) != 0) {
-			// TODO(bassosimone): ideally it would simplify the implementation
-			// if we could (and we can) move this flag inside of the reactor.
+            // TODO(bassosimone): ideally it would simplify the implementation
+            // if we could (and we can) move this flag inside of the reactor.
             task->flags |= F_INTERRUPT; // allow for early interrupt
             task->reactor->stop();      // is thread safe
         }
@@ -438,7 +438,7 @@ void mk_task_interrupt(mk_task_t *task) noexcept {
 const mk_event_t *mk_task_wait_for_next_event(mk_task_t *task) noexcept {
     if (task != nullptr) {
         std::unique_lock<std::mutex> lock{task->mutex};
-		// Block here until we are stopped or we have something to process
+        // Block here until we are stopped or we have something to process
         task->cond.wait(lock, [&]() {
             return (task->running & F_RUN) == 0 || !task->deque.empty();
         });
@@ -454,15 +454,15 @@ const mk_event_t *mk_task_wait_for_next_event(mk_task_t *task) noexcept {
 
 static void mk_task_post_event(
         mk_task_t *task, std::unique_ptr<const mk_event_t> event) noexcept {
-	// internal function so just assert
-	assert(task);
-	assert(event);
-	// Post event and unblock people blocked on destroy or wait_for_next_event
-	{
-    	std::unique_lock<std::mutex> lock{task->mutex};
-		task->deque.push_back(std::move(event));
-	}
-	task->cond.notify_all(); // okay to call unlocked - must be ALL
+    // internal function so just assert
+    assert(task);
+    assert(event);
+    // Post event and unblock people blocked on destroy or wait_for_next_event
+    {
+        std::unique_lock<std::mutex> lock{task->mutex};
+        task->deque.push_back(std::move(event));
+    }
+    task->cond.notify_all(); // okay to call unlocked - must be ALL
 }
 
 void mk_task_destroy(mk_task_t *task) noexcept {
@@ -470,7 +470,7 @@ void mk_task_destroy(mk_task_t *task) noexcept {
         {
             std::unique_lock<std::mutex> lock{task->mutex};
             if ((taks->flags & F_START) != 0) {
-				// If we've been started, wait until we are stopped.
+                // If we've been started, wait until we are stopped.
                 task->cond.wait(
                         lock, [task]() { return (task->flags & F_RUN) == 0; });
             }
@@ -481,8 +481,8 @@ void mk_task_destroy(mk_task_t *task) noexcept {
 }
 
 static void mk_task_main_unlocked(mk_tast_t *task) noexcept {
-	// TODO(bassosimone): here we will implement the task. It should basically
-	// get the task template and configure the task accordingly. Routing the
-	// events occurring as callbacks to events poste on the queue should be easy
-	// given that the tricky part are already implemented above.
+    // TODO(bassosimone): here we will implement the task. It should basically
+    // get the task template and configure the task accordingly. Routing the
+    // events occurring as callbacks to events poste on the queue should be easy
+    // given that the tricky part are already implemented above.
 }
