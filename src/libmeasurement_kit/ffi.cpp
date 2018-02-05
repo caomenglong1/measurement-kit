@@ -151,6 +151,11 @@ const char *mk_event_get_string_entry(
     return nullptr;
 }
 
+// TODO(bassosimone): make sure these serialization are actually needed. It may
+// be that the temporary object is valid for some time, but still this strikes
+// me as an API place where one can make mistakes, as really it is a different
+// lifecycle, no?
+
 mk_serialization_t *mk_event_serialize_entry(
         const mk_event_t *evp, const char *key) noexcept {
     if (evp != nullptr && key != nullptr) {
