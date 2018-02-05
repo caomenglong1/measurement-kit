@@ -139,12 +139,11 @@ double mk_event_get_double_entry(
     return 0.0;
 }
 
-mk_serialization_t *mk_event_get_string_entry(
+const char *mk_event_get_string_entry(
         const mk_event_t *evp, const char *key) noexcept {
     if (evp != nullptr && key != nullptr) {
         try {
-            return mk_serialization_create(
-                    evp->at("values").at(key).get<std::string>());
+            return evp->at("values").at(key).get<std::string>().data();
         } catch (const std::exception &) {
             /* NOTHING */;
         }
