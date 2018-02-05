@@ -121,7 +121,7 @@ struct mk_settings_s : public nlohmann::json {
     XX(log_file, string, "")                                                   \
     XX(options, object, object())                                              \
     XX(output_file, string, "")                                                \
-    XX(enabled_events, array, array({"END"})
+    XX(enabled_events, array, array()
 
 #define DO_TOPLEVEL_KEYS(name, type, initializer)                              \
     if (json.count(#name) != 0) {                                              \
