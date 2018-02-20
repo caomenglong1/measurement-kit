@@ -8,6 +8,7 @@
 
 #include "src/libmeasurement_kit/net/emitter.hpp"
 #include "src/libmeasurement_kit/ooni/utils.hpp"
+#include "src/libmeasurement_kit/ooni/templates.hpp"
 
 namespace mk {
 namespace ooni {
