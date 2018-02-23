@@ -114,7 +114,6 @@ class Task {
  * ```
  */
 #define MK_ENUM_VERBOSITY(XX)                                                  \
-    XX(QUIET)                                                                  \
     XX(ERR)                                                                    \
     XX(WARNING)                                                                \
     XX(INFO)                                                                   \

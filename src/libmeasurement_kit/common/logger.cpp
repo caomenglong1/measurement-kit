@@ -157,6 +157,10 @@ class DefaultLogger : public Logger, public NonCopyable, public NonMovable {
         consumer_ = std::move(fn);
     }
 
+    // TODO(bassosimone): when engine.h will be the only exposed APIs, and
+    // logger.hpp will be private, we can consider removing some of the funcs
+    // that currently are here, like on_eof() and on_event().
+
     void on_eof(Callback<> &&f) override {
         std::unique_lock<std::recursive_mutex> _{mutex_};
         eof_handlers_.push_back(std::move(f));
@@ -165,6 +169,12 @@ class DefaultLogger : public Logger, public NonCopyable, public NonMovable {
     void on_event(Callback<const char *> &&f) override {
         std::unique_lock<std::recursive_mutex> _{mutex_};
         event_handler_ = std::move(f);
+    }
+
+    void on_event_ex(const std::string &event,
+            Callback<nlohmmann::json &&> &&cb) override {
+        std::unique_lock<std::recursive_mutex> _{mutex_};
+        handlers_[event] = std::move(cb);
     }
 
     void on_progress(Callback<double, const char *> &&fn) override {
@@ -188,6 +198,23 @@ class DefaultLogger : public Logger, public NonCopyable, public NonMovable {
                 /* Suppress */;
             }
         }
+    }
+
+    void emit_event_ex(nlohmann::json &&event) override {
+        if (!event.is_object() || event.count("type") <= 0 ||
+            !event.at("type").is_string()) {
+            return;
+        }
+        std::unique_lock<std::recursive_mutex> _{mutex_};
+        std::string type = events.at("type").get<std::string>();
+        if (handlers_.count(type) <= 0) {
+            return;
+        }
+        // TODO(bassosimone): other logging functions filter all the
+        // exceptions. We cannot change this behavior until that is part
+        // of our public API. But here we deliberately choose not to do
+        // any exception handling. The callee must behave.
+        handlers_.at(type)(std::move(event));
     }
 
     void progress_relative(double prog, const char *s) override {
@@ -231,6 +258,7 @@ class DefaultLogger : public Logger, public NonCopyable, public NonMovable {
     SharedPtr<std::ofstream> ofile_;
     std::list<Delegate<>> eof_handlers_;
     Delegate<const char *> event_handler_;
+    std::map<std::string, Delegate<nlohmmann::json &&>> handlers_;
     Delegate<double, const char *> progress_handler_;
     double progress_offset_ = 0.0;
     double progress_scale_ = 1.0;
