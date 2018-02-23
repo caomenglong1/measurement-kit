@@ -12,8 +12,9 @@
 
 // The numbers [0-31] are reserved for verbosity levels.
 
-/// `MK_LOG_QUIET` indicates that no log should be emitted.
-#define MK_LOG_QUIET 0
+/// `MK_LOG_ALWAYS` indicates that a specific message must always be
+/// emitted. Used mainly to deliver events.
+#define MK_LOG_ALWAYS 0
 
 /// `MK_LOG_ERR` indicates the `ERR` log severity level.
 #define MK_LOG_ERR 1
@@ -39,7 +40,7 @@
 
 /// \brief `MK_LOG_EVENT` indicates an event. It is a bit outside of the
 /// verbosity mask. This is used to indicate that the current log message
-/// is not plaintext but rather a serialized JSON representing an event.
+/// is an event to be delivered as part of the engine.h API.
 #define MK_LOG_EVENT 32
 
 // Note: the attribute we use below is GCC and Clang specific (and Clang

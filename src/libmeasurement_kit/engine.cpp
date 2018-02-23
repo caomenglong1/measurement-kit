@@ -367,7 +367,7 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings) {
 
     // extract and process `verbosity`
     {
-        uint32_t verbosity = MK_LOG_QUIET;
+        uint32_t verbosity = MK_LOG_WARNING;
         if (settings.count("verbosity") != 0) {
             auto verbosity_string = settings.at("verbosity").get<std::string>();
             auto verbosity_tuple = verbosity_atoi(verbosity_string);
@@ -416,9 +416,6 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings) {
     // see whether 'PERFORMANCE' is enabled
     // TODO(bassosimone): adapt this event according to spec when @hellais will
     // have finalized the events specification.
-    //
-    // TODO(bassosimone): currently events are emitted using the logger and as
-    // such they're subject to the verosity, which is really a bummer.
     if (enabled_events.count("PERFORMANCE") != 0) {
         runnable->logger->on_event([pimpl](const char *line) {
             nlohmann::json event;
@@ -455,12 +452,7 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings) {
             emit(pimpl, make_log_event(verbosity, line));
         });
     } else {
-        // Here we should silence the logger but we cannot do that since events
-        // and logs are deeply related. So our second best is to just set up
-        // a dummy logger that prevents output from going on stderr.
-        //
-        // TODO(bassosimone): decouple logging and events.
-        runnable->logger->on_log([](uint32_t, const char *) { /* NOTHING */ });
+        runnable->logger->on_log(nullptr);
     }
 
     // start the task (reactor and interrupted are MT safe)

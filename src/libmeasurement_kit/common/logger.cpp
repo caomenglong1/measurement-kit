@@ -50,7 +50,7 @@ class DefaultLogger : public Logger, public NonCopyable, public NonMovable {
     void logv(uint32_t level, const char *fmt, va_list ap) override {
         std::unique_lock<std::recursive_mutex> _{mutex_};
 
-        if (!consumer_ and !ofile_) {
+        if (!consumer_ and !ofile_ and !event_handler_) {
             return;
         }
 
