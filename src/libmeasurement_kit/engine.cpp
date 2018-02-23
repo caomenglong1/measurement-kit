@@ -75,7 +75,8 @@ class TaskImpl {
     std::thread thread;
 };
 
-static void task_run(TaskImpl *pimpl, nlohmann::json &settings);
+static void task_run(TaskImpl *pimpl, nlohmann::json &settings,
+                     std::function<void()> &&);
 static bool is_event_valid(const std::string &);
 
 static void emit(TaskImpl *pimpl, nlohmann::json &&event) {
@@ -136,7 +137,7 @@ nlohmann::json Task::wait_for_next_event() {
     if (!pimpl_->deque.empty()) {
         auto rv = std::move(pimpl_->deque.front());
         pimpl_->deque.pop_front();
-        return nlohmann::json{std::move(rv)};
+        return rv;
     }
     assert(!pimpl_->running);
     return nlohmann::json(); // this is a `null` JSON object
@@ -174,20 +175,25 @@ static nlohmann::json make_log_event(uint32_t verbosity, const char *message) {
     auto verbosity_tuple = verbosity_itoa(verbosity);
     assert(std::get<1>(verbosity_tuple));
     const std::string &vs = std::get<0>(verbosity_tuple);
-    return nlohmann::json{{"type", "log"},
-            {"value", {"verbosity", vs}, {"message", message}}};
+    nlohmann::json object;
+    object["type"] = "log";
+    object["value"]["verbosity"] = vs;
+    object["value"]["message"] = message;
+    return object;
 }
 
 static nlohmann::json make_failure_event(const Error &error) {
-    return nlohmann::json{{"type", "failure.startup"},
-            {"value", {{"failure", error.reason}}}};
+    nlohmann::json object;
+    object["type"] = "failure.startup";
+    object["value"]["failure"] = error.reason;
+    return object;
 }
 
 static bool is_event_valid(const std::string &str) {
     bool rv = false;
     do {
 #define CHECK(value)                                                           \
-    if (#value == str) {                                                       \
+    if (value == str) {                                                        \
         rv = true;                                                             \
         break;                                                                 \
     }
@@ -199,7 +205,7 @@ static bool is_event_valid(const std::string &str) {
 
 static nlohmann::json known_events() {
     nlohmann::json json;
-#define ADD(name) json.push_back(#name);
+#define ADD(name) json.push_back(name);
     MK_ENUM_EVENT(ADD)
 #undef ADD
     return json;
@@ -404,24 +410,24 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings,
         }
     }
 
-    // intercept and route generic events
-    for (auto &event : enabled_events) {
-        if (event != "log") {
-            runnable->logger->on_event_ex(event, [pimpl](nlohmann::json &&e) {
-                emit(pimpl, std::move(e));
-            });
-        }
-    }
-
     // see whether 'log' is enabled
     if (enabled_events.count("log") != 0) {
         runnable->logger->on_log([pimpl](uint32_t verbosity, const char *line) {
-            if ((verbosity & ~MK_LOG_VERBOSITY_MASK) == 0) {
-                emit(pimpl, make_log_event(verbosity, line));
+            if ((verbosity & ~MK_LOG_VERBOSITY_MASK) != 0) {
+                return; // mask out non-logging events
             }
+            emit(pimpl, make_log_event(verbosity, line));
         });
+        enabled_events.erase("log"); // we have consumed this event type
     } else {
         runnable->logger->on_log(nullptr);
+    }
+
+    // intercept and route all the other possible events
+    for (auto &event : enabled_events) {
+        runnable->logger->on_event_ex(event, [pimpl](nlohmann::json &&event) {
+            emit(pimpl, std::move(event));
+        });
     }
 
     // Emit the queued event, then possibly block waiting in queue. Done now
@@ -429,13 +435,9 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings,
     // with a wrong configuration. Also, events related to configuration errors
     // are always emitted unconditionally, because the user needs to know when
     // he/she configured a Measurement Kit task incorrectly.
-    runnable->logger->emit_event_ex(nlohmann::json{
-        {"type", "status.queued"}, {"value", {}}
-    });
+    runnable->logger->emit_event_ex("status.queued", nlohmann::json::object());
     wait_func();
-    runnable->logger->emit_event_ex(nlohmann::json{
-        {"type", "status.started"}, {"value", {}}
-    };
+    runnable->logger->emit_event_ex("status.started", nlohmann::json::object());
 
     // start the task (reactor and interrupted are MT safe)
     Error error = GenericError();
@@ -454,14 +456,14 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings,
     });
 
     DataUsage du;
-    runnable->reactor->with_current_data_usage([&](DataUsage x) { du = x; });
-    runnable->logger->emit_event_ex(nlohmann::json{
-        {"type", "status.end"}, {"value", {
-            {"downloaded_kb", du.down / 1024.0},
-            {"failure", error.reason},
-            {"uploaded_kb", du.up / 1024.0},
-        }}
-    };
+    runnable->reactor->with_current_data_usage([&](DataUsage &x) {
+        du = x;
+    });
+    runnable->logger->emit_event_ex("status.end", {
+        {"downloaded_kb", du.down / 1024.0},
+        {"failure", error.reason},
+        {"uploaded_kb", du.up / 1024.0},
+    });
 }
 
 } // namespace engine

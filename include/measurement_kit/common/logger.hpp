@@ -7,14 +7,14 @@
 #include <cstdint>
 #include <measurement_kit/common/aaa_base.h>
 #include <measurement_kit/common/callback.hpp>
+#include <measurement_kit/common/json.hpp>
 #include <measurement_kit/common/shared_ptr.hpp>
 #include <stdarg.h>
 
 // The numbers [0-31] are reserved for verbosity levels.
 
-/// `MK_LOG_ALWAYS` indicates that a specific message must always be
-/// emitted. Used mainly to deliver events.
-#define MK_LOG_ALWAYS 0
+/// `MK_LOG_QUIET` indicates that no log should be emitted.
+#define MK_LOG_QUIET 0
 
 /// `MK_LOG_ERR` indicates the `ERR` log severity level.
 #define MK_LOG_ERR 1
@@ -40,7 +40,7 @@
 
 /// \brief `MK_LOG_EVENT` indicates an event. It is a bit outside of the
 /// verbosity mask. This is used to indicate that the current log message
-/// is an event to be delivered as part of the engine.h API.
+/// is not plaintext but rather a serialized JSON representing an event.
 #define MK_LOG_EVENT 32
 
 // Note: the attribute we use below is GCC and Clang specific (and Clang
@@ -161,6 +161,10 @@ class Logger {
     /// `on_log` allows to set the log handler.
     virtual void on_log(Callback<uint32_t, const char *> &&fn) = 0;
 
+    // TODO(bassosimone): when this header will become private, we can then
+    // remove on_eof() and on_event() because they'll become unused. We will
+    // also be able to remove the progress handler.
+
     /// \brief `on_eof()` allows to set the EOF handler. You can set more
     /// than one handler. All the set handlers will be called when the
     /// logger is destroyed. This is used e.g. in Android to free resources.
@@ -181,7 +185,8 @@ class Logger {
     virtual void set_logfile(std::string fpath) = 0;
 
     /// `emit_event_ex()` emits an event as a JSON.
-    virtual void emit_event_ex(nlohmann::json &&event) = 0;
+    virtual void emit_event_ex(const std::string &type,
+                               nlohmann::json &&value) = 0;
 
     /// \brief `progress()` emits a progress event. \param percent is the
     /// percentage of completion of the current test. \param message is the
