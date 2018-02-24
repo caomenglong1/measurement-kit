@@ -76,7 +76,7 @@ mk_event_t *mk_task_wait_for_next_event(mk_task_t *task) MK_FFI_NOEXCEPT;
 /** mk_task_is_done() returns nonzero if the task is done, 0 otherwise. A task
  * is done when the task thread has exited and there are no unread events in
  * the queue drained by mk_task_wait_for_next_event(). @note a NULL task will
- * always be considered as done. */
+ * always be considered done. */
 int mk_task_is_done(mk_task_t *task) MK_FFI_NOEXCEPT;
 
 /** mk_task_interrupt() interrupts a task. */
