@@ -403,6 +403,21 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings,
         }
     }
 
+    // extract and process `inputs`
+    if (settings.count("inputs") != 0) {
+        for (auto &value : settings.at("inputs")) {
+            if (value.is_string()) {
+                runnable->inputs.push_back(value.get<std::string>());
+            } else {
+                std::stringstream ss;
+                ss << "Found input '" << value << "' to have an invalid type"
+                    << " (fyi: values inside 'inputs' must be strings)";
+                emit_settings_failure(pimpl, ss.str().data());
+                return;
+            }
+        }
+    }
+
     // extract and process `verbosity`
     {
         uint32_t verbosity = MK_LOG_WARNING;
