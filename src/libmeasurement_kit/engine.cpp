@@ -434,6 +434,12 @@ static void task_run(TaskImpl *pimpl, nlohmann::json &settings,
         }
     }
 
+    // extract and process `log_filepath`
+    if (settings.count("log_filepath") != 0) {
+        auto &value = settings.at("log_filepath");
+        runnable->logger->set_logfile(value.get<std::string>());
+    }
+
     // extract and process `verbosity`
     {
         uint32_t verbosity = MK_LOG_WARNING;
