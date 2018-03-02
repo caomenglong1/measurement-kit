@@ -3,6 +3,7 @@
 // and LICENSE for more information on the copying conditions.
 
 #include "src/libmeasurement_kit/common/utils.hpp"
+#include "src/libmeasurement_kit/ooni/nettests.hpp"
 #include "src/libmeasurement_kit/ooni/templates.hpp"
 #include "src/libmeasurement_kit/report/entry.hpp"
 #include "src/libmeasurement_kit/net/transport.hpp"
