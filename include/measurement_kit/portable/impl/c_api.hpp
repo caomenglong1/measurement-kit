@@ -60,8 +60,8 @@ int mk_closesocket(mk_socket_t sock) noexcept {
     return CTX->mk_closesocket(sock);
 }
 
-int mk_gettimeofday(timeval *tv, timezone *tz) noexcept {
-    return CTX->mk_gettimeofday(tv, tz);
+int mk_gettimeofday(timeval *tv, struct timezone *tz) noexcept {
+    return CTX->do_gettimeofday(tv, tz);
 }
 
 int mk_gettimeofday_as_double(double *now) noexcept {
