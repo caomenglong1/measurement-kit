@@ -77,6 +77,8 @@ int Context::do_ioctlsocket(
         MOCK_set_last_error(MK_EINVAL);
         return -1;
     }
+    // TODO(bassosimone): we can actually avoid calling ioctlsocket() again
+    // here, since basically we've already made it nonblocking.
     assert(command == MK_FIONBIO);
     int rv = MOCK_ioctlsocket(sock, command, argument);
     if (rv == 0) {
