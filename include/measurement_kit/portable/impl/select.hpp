@@ -4,9 +4,10 @@
 #ifndef MEASUREMENT_KIT_PORTABLE_IMPL_SELECT_HPP
 #define MEASUREMENT_KIT_PORTABLE_IMPL_SELECT_HPP
 
+#include <measurement_kit/portable/context.hpp>
+
 #include <assert.h>
 
-#include <measurement_kit/portable/context.hpp>
 #include <measurement_kit/portable/impl/flags.h>
 
 namespace mk {

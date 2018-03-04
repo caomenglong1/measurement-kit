@@ -5,6 +5,7 @@
 #define MEASUREMENT_KIT_PORTABLE_IMPL_TIME_HPP
 
 #include <measurement_kit/portable/context.hpp>
+
 #include <measurement_kit/portable/impl/flags.h>
 
 namespace mk {

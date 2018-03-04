@@ -4,9 +4,10 @@
 #ifndef MEASUREMENT_KIT_PORTABLE_IMPL_SOCKET_DO_HPP
 #define MEASUREMENT_KIT_PORTABLE_IMPL_SOCKET_DO_HPP
 
+#include <measurement_kit/portable/context.hpp>
+
 #include <assert.h>
 
-#include <measurement_kit/portable/context.hpp>
 #include <measurement_kit/portable/impl/flags.h>
 
 namespace mk {

@@ -4,9 +4,9 @@
 #ifndef MEASUREMENT_KIT_PORTABLE_IMPL_NETDB_HPP
 #define MEASUREMENT_KIT_PORTABLE_IMPL_NETDB_HPP
 
-#include <assert.h>
-
 #include <measurement_kit/portable/context.hpp>
+
+#include <assert.h>
 
 namespace mk {
 namespace portable {

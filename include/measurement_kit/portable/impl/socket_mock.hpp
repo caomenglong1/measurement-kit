@@ -4,14 +4,14 @@
 #ifndef MEASUREMENT_KIT_PORTABLE_IMPL_SOCKET_MOCK_HPP
 #define MEASUREMENT_KIT_PORTABLE_IMPL_SOCKET_MOCK_HPP
 
+#include <measurement_kit/portable/context.hpp>
+
 #include <assert.h>
 
 #ifndef _WIN32
 #include <fcntl.h>
 #include <unistd.h>
 #endif
-
-#include <measurement_kit/portable/context.hpp>
 
 namespace mk {
 namespace portable {
