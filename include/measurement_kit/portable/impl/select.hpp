@@ -57,7 +57,7 @@ int Context::do_select(int nfds, fd_set *readfds, fd_set *writefds,
     }
     while ((flags_ & MK_F_INTR) == 0) {
         timeval tv{};
-        tv.tv_usec = 250'000;
+        tv.tv_usec = short_sleep_interval;
         int ctrl = MOCK_select(nfds, readfds, writefds, errorfds, &tv);
         switch (ctrl) {
         case -1:
