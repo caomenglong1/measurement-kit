@@ -116,4 +116,4 @@ int Context::MOCK_closesocket(mk_socket_t sock) noexcept {
 
 } // namespace portable
 } // namespace mk
-#endif // MEASUREMENT_KIT_PORTABLE_CONTEXT_HPP
+#endif // MEASUREMENT_KIT_PORTABLE_SOCKET_MOCK_HPP
