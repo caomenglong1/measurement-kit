@@ -39,7 +39,7 @@ int Context::do_select(int nfds, fd_set *readfds, fd_set *writefds,
         auto ctrl = MOCK_select(nfds, readfds, writefds, errorfds, timeout);
         assert(ctrl >= -1);
         if (ctrl != -1 && (flags_ & MK_F_INTR) != 0) {
-            MOCK_set_last_error(MK_ESHUTDOWN);
+            MOCK_set_last_error(MK_ENETDOWN);
             ctrl = -1;
         }
         return ctrl;
@@ -84,7 +84,7 @@ int Context::do_select(int nfds, fd_set *readfds, fd_set *writefds,
             return -1;
         }
     }
-    MOCK_set_last_error(MK_ESHUTDOWN);
+    MOCK_set_last_error(MK_ENETDOWN);
     return -1;
 }
 
