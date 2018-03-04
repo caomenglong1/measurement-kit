@@ -31,19 +31,19 @@ class Context {
     virtual int MOCK_getaddrinfo(const char *hostname, const char *servname,
             const struct addrinfo *hints, struct addrinfo **res) noexcept;
 
-    virtual int mk_getaddrinfo(const char *hostname, const char *servname,
+    virtual int do_getaddrinfo(const char *hostname, const char *servname,
             const struct addrinfo *hints, struct addrinfo **res) noexcept;
 
     virtual void MOCK_freeaddrinfo(struct addrinfo *ai) noexcept;
 
-    virtual void mk_freeaddrinfo(struct addrinfo *ai) noexcept;
+    virtual void do_freeaddrinfo(struct addrinfo *ai) noexcept;
 
     // sys/select.h
 
     virtual int MOCK_select(int nfds, fd_set *readfds, fd_set *writefds,
             fd_set *errorfds, struct timeval *timeout) noexcept;
 
-    virtual int mk_select(int nfds, fd_set *readfds, fd_set *writefds,
+    virtual int do_select(int nfds, fd_set *readfds, fd_set *writefds,
             fd_set *errorfds, struct timeval *timeout) noexcept;
 
     // sys/socket.h
@@ -51,12 +51,12 @@ class Context {
     virtual mk_socket_t MOCK_socket(
             int domain, int type, int protocol) noexcept;
 
-    virtual mk_socket_t mk_socket(int domain, int type, int protocol) noexcept;
+    virtual mk_socket_t do_socket(int domain, int type, int protocol) noexcept;
 
     virtual int MOCK_connect(mk_socket_t sock, const struct sockaddr *endpoint,
             mk_socklen_t endpoint_length) noexcept;
 
-    virtual int mk_connect(mk_socket_t sock, const struct sockaddr *endpoint,
+    virtual int do_connect(mk_socket_t sock, const struct sockaddr *endpoint,
             mk_socklen_t endpoint_length) noexcept;
 
 #ifndef _WIN32
@@ -69,30 +69,30 @@ class Context {
     virtual int MOCK_ioctlsocket(
             mk_socket_t sock, long command, unsigned long *argument) noexcept;
 
-    virtual int mk_ioctlsocket(
+    virtual int do_ioctlsocket(
             mk_socket_t sock, long command, unsigned long *argument) noexcept;
 
     virtual int MOCK_getsockopt(mk_socket_t sock, int level, int option_name,
             mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept;
 
-    virtual int mk_getsockopt(mk_socket_t sock, int level, int option_name,
+    virtual int do_getsockopt(mk_socket_t sock, int level, int option_name,
             mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept;
 
     virtual mk_ssize_t MOCK_recv(mk_socket_t sock, void *buffer,
             mk_size_t length, int recv_flags) noexcept;
 
-    virtual mk_ssize_t mk_recv(mk_socket_t sock, void *buffer, mk_size_t length,
+    virtual mk_ssize_t do_recv(mk_socket_t sock, void *buffer, mk_size_t length,
             int recv_flags) noexcept;
 
     virtual mk_ssize_t MOCK_send(mk_socket_t sock, const void *buffer,
             mk_size_t length, int send_flags) noexcept;
 
-    virtual mk_ssize_t mk_send(mk_socket_t sock, const void *buffer,
+    virtual mk_ssize_t do_send(mk_socket_t sock, const void *buffer,
             mk_size_t length, int send_flags) noexcept;
 
     virtual int MOCK_closesocket(mk_socket_t sock) noexcept;
 
-    virtual int mk_closesocket(mk_socket_t sock) noexcept;
+    virtual int do_closesocket(mk_socket_t sock) noexcept;
 
     // sys/time.h
     //
@@ -105,7 +105,7 @@ class Context {
     virtual int MOCK_gettimeofday(timeval *tv, struct timezone *tz) noexcept;
 #endif
 
-    virtual int mk_gettimeofday(timeval *tv, struct timezone *tz) noexcept;
+    virtual int do_gettimeofday(timeval *tv, struct timezone *tz) noexcept;
 
     // context proper
 

@@ -16,48 +16,48 @@ void mk_set_last_error(int error_code) noexcept {
 
 int mk_getaddrinfo(const char *hostname, const char *servname,
         const addrinfo *hints, addrinfo **res) noexcept {
-    return CTX->mk_getaddrinfo(hostname, servname, hints, res);
+    return CTX->do_getaddrinfo(hostname, servname, hints, res);
 }
 
-void mk_freeaddrinfo(addrinfo *ai) noexcept { return CTX->mk_freeaddrinfo(ai); }
+void mk_freeaddrinfo(addrinfo *ai) noexcept { return CTX->do_freeaddrinfo(ai); }
 
 int mk_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *errorfds,
         timeval *timeout) noexcept {
-    return CTX->mk_select(nfds, readfds, writefds, errorfds, timeout);
+    return CTX->do_select(nfds, readfds, writefds, errorfds, timeout);
 }
 
 mk_socket_t mk_socket(int domain, int type, int protocol) noexcept {
-    return CTX->mk_socket(domain, type, protocol);
+    return CTX->do_socket(domain, type, protocol);
 }
 
 int mk_connect(mk_socket_t sock, const sockaddr *endpoint,
         mk_socklen_t endpoint_length) noexcept {
-    return CTX->mk_connect(sock, endpoint, endpoint_length);
+    return CTX->do_connect(sock, endpoint, endpoint_length);
 }
 
 int mk_ioctlsocket(
         mk_socket_t sock, long command, unsigned long *argument) noexcept {
-    return CTX->mk_ioctlsocket(sock, command, argument);
+    return CTX->do_ioctlsocket(sock, command, argument);
 }
 
 int mk_getsockopt(mk_socket_t sock, int level, int option_name,
         mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept {
-    return CTX->mk_getsockopt(
+    return CTX->do_getsockopt(
             sock, level, option_name, option_value, option_len);
 }
 
 mk_ssize_t mk_recv(mk_socket_t sock, void *buffer, mk_size_t length,
         int recv_flags) noexcept {
-    return CTX->mk_recv(sock, buffer, length, recv_flags);
+    return CTX->do_recv(sock, buffer, length, recv_flags);
 }
 
 mk_ssize_t mk_send(mk_socket_t sock, const void *buffer, mk_size_t length,
         int send_flags) noexcept {
-    return CTX->mk_send(sock, buffer, length, send_flags);
+    return CTX->do_send(sock, buffer, length, send_flags);
 }
 
 int mk_closesocket(mk_socket_t sock) noexcept {
-    return CTX->mk_closesocket(sock);
+    return CTX->do_closesocket(sock);
 }
 
 int mk_gettimeofday(timeval *tv, struct timezone *tz) noexcept {

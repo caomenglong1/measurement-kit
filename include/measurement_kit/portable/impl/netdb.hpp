@@ -28,7 +28,7 @@ int Context::MOCK_getaddrinfo(const char *hostname, const char *servname,
 
 #define EASY_MAP(error_) case error_: return MK_##error_;
 
-int Context::mk_getaddrinfo(const char *hostname, const char *servname,
+int Context::do_getaddrinfo(const char *hostname, const char *servname,
         const struct addrinfo *hints, struct addrinfo **res) noexcept {
     int ctrl = MOCK_getaddrinfo(hostname, servname, hints, res);
     switch (ctrl) {
@@ -76,7 +76,7 @@ void Context::MOCK_freeaddrinfo(struct addrinfo *ai) noexcept {
     ::freeaddrinfo(ai);
 }
 
-void Context::mk_freeaddrinfo(struct addrinfo *ai) noexcept {
+void Context::do_freeaddrinfo(struct addrinfo *ai) noexcept {
     MOCK_freeaddrinfo(ai);
 }
 

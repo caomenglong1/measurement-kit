@@ -19,7 +19,7 @@ int Context::MOCK_select(int nfds, fd_set *readfds, fd_set *writefds,
     return ctrl;
 }
 
-int Context::mk_select(int nfds, fd_set *readfds, fd_set *writefds,
+int Context::do_select(int nfds, fd_set *readfds, fd_set *writefds,
         fd_set *errorfds, struct timeval *timeout) noexcept {
     if (nfds < 0) {
         MOCK_set_last_error(MK_EINVAL);

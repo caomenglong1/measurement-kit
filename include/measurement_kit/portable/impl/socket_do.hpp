@@ -12,7 +12,7 @@
 namespace mk {
 namespace portable {
 
-mk_socket_t Context::mk_socket(int domain, int type, int protocol) noexcept {
+mk_socket_t Context::do_socket(int domain, int type, int protocol) noexcept {
     mk_socket_t sock = MOCK_socket(domain, type, protocol);
     if (sock != -1) {
         unsigned long argument = 1;
@@ -26,7 +26,7 @@ mk_socket_t Context::mk_socket(int domain, int type, int protocol) noexcept {
     return sock;
 }
 
-int Context::mk_connect(mk_socket_t sock, const struct sockaddr *endpoint,
+int Context::do_connect(mk_socket_t sock, const struct sockaddr *endpoint,
         mk_socklen_t endpoint_length) noexcept {
     if (sockets_.count(sock) == 0) {
         MOCK_set_last_error(MK_EINVAL);
@@ -45,7 +45,7 @@ int Context::mk_connect(mk_socket_t sock, const struct sockaddr *endpoint,
     fd_set writeset;
     FD_ZERO(&writeset);
     FD_SET(sock, &writeset);
-    auto ctrl = mk_select(sock + 1, nullptr, &writeset, nullptr, nullptr);
+    auto ctrl = do_select(sock + 1, nullptr, &writeset, nullptr, nullptr);
     if (ctrl == -1) {
         return -1;
     }
@@ -55,8 +55,8 @@ int Context::mk_connect(mk_socket_t sock, const struct sockaddr *endpoint,
     }
     int real_error_code = 0;
     mk_socklen_t len = sizeof(real_error_code);
-    auto getsockopt_err = MOCK_getsockopt(sock, SOL_SOCKET, SO_ERROR,
-            (mk_sockopt_t *)&real_error_code, &len);
+    auto getsockopt_err = do_getsockopt(
+            sock, SOL_SOCKET, SO_ERROR, (mk_sockopt_t *)&real_error_code, &len);
     if (getsockopt_err != 0) {
         return -1;
     }
@@ -67,7 +67,7 @@ int Context::mk_connect(mk_socket_t sock, const struct sockaddr *endpoint,
     return 0;
 }
 
-int Context::mk_ioctlsocket(
+int Context::do_ioctlsocket(
         mk_socket_t sock, long command, unsigned long *argument) noexcept {
     if (sockets_.count(sock) == 0) {
         MOCK_set_last_error(MK_EINVAL);
@@ -81,7 +81,7 @@ int Context::mk_ioctlsocket(
     return rv;
 }
 
-int Context::mk_getsockopt(mk_socket_t sock, int level, int option_name,
+int Context::do_getsockopt(mk_socket_t sock, int level, int option_name,
         mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept {
     if (sockets_.count(sock) == 0) {
         MOCK_set_last_error(MK_EINVAL);
@@ -90,7 +90,7 @@ int Context::mk_getsockopt(mk_socket_t sock, int level, int option_name,
     return MOCK_getsockopt(sock, level, option_name, option_value, option_len);
 }
 
-mk_ssize_t Context::mk_recv(mk_socket_t sock, void *buffer, mk_size_t length,
+mk_ssize_t Context::do_recv(mk_socket_t sock, void *buffer, mk_size_t length,
         int recv_flags) noexcept {
     if (sockets_.count(sock) == 0) {
         MOCK_set_last_error(MK_EINVAL);
@@ -109,7 +109,7 @@ mk_ssize_t Context::mk_recv(mk_socket_t sock, void *buffer, mk_size_t length,
     fd_set readset;
     FD_ZERO(&readset);
     FD_SET(sock, &readset);
-    auto ctrl = mk_select(sock + 1, &readset, nullptr, nullptr, nullptr);
+    auto ctrl = do_select(sock + 1, &readset, nullptr, nullptr, nullptr);
     if (ctrl == -1) {
         return -1;
     }
@@ -120,7 +120,7 @@ mk_ssize_t Context::mk_recv(mk_socket_t sock, void *buffer, mk_size_t length,
     return -1;
 }
 
-mk_ssize_t Context::mk_send(mk_socket_t sock, const void *buffer,
+mk_ssize_t Context::do_send(mk_socket_t sock, const void *buffer,
         mk_size_t length, int send_flags) noexcept {
     if (sockets_.count(sock) == 0) {
         MOCK_set_last_error(MK_EINVAL);
@@ -139,7 +139,7 @@ mk_ssize_t Context::mk_send(mk_socket_t sock, const void *buffer,
     fd_set writeset;
     FD_ZERO(&writeset);
     FD_SET(sock, &writeset);
-    auto ctrl = mk_select(sock + 1, nullptr, &writeset, nullptr, nullptr);
+    auto ctrl = do_select(sock + 1, nullptr, &writeset, nullptr, nullptr);
     if (ctrl == -1) {
         return -1;
     }
@@ -150,7 +150,7 @@ mk_ssize_t Context::mk_send(mk_socket_t sock, const void *buffer,
     return -1;
 }
 
-int Context::mk_closesocket(mk_socket_t sock) noexcept {
+int Context::do_closesocket(mk_socket_t sock) noexcept {
     if (sockets_.count(sock) == 0) {
         MOCK_set_last_error(MK_EINVAL);
         return -1;

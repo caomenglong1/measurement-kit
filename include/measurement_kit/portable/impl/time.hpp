@@ -20,7 +20,7 @@ int Context::MOCK_gettimeofday(timeval *tv, struct timezone *tz) noexcept {
 }
 #endif
 
-int Context::mk_gettimeofday(timeval *tv, struct timezone *tz) noexcept {
+int Context::do_gettimeofday(timeval *tv, struct timezone *tz) noexcept {
 #ifdef _WIN32
     if (tz != nullptr) {
         MOCK_set_last_error(MK_EINVAL);
