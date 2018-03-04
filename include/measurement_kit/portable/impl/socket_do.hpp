@@ -43,6 +43,9 @@ int Context::do_connect(mk_socket_t sock, const struct sockaddr *endpoint,
     if ((sockets_.at(sock) & MK_F_NONBLOCK) != 0) {
         return -1;
     }
+    // TODO(bassosimone): we can probably have some default timeout for I/O
+    // operations in this case as well as for recv and send. This is especially
+    // relevant for connect() where otherwise it's a 75 s operation.
     fd_set writeset;
     FD_ZERO(&writeset);
     FD_SET(sock, &writeset);
