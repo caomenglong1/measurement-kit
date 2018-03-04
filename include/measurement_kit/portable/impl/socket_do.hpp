@@ -46,11 +46,25 @@ int Context::mk_connect(mk_socket_t sock, const struct sockaddr *endpoint,
     FD_ZERO(&writeset);
     FD_SET(sock, &writeset);
     auto ctrl = mk_select(sock + 1, nullptr, &writeset, nullptr, nullptr);
-    if (ctrl == -1 || ctrl > 0) {
-        return (ctrl == -1) ? -1 : 0;
+    if (ctrl == -1) {
+        return -1;
     }
-    MOCK_set_last_error(MK_ETIMEDOUT);
-    return -1;
+    if (ctrl == 0) {
+        MOCK_set_last_error(MK_ETIMEDOUT);
+        return -1;
+    }
+    int real_error_code = 0;
+    mk_socklen_t len = sizeof(real_error_code);
+    auto getsockopt_err = MOCK_getsockopt(sock, SOL_SOCKET, SO_ERROR,
+            (mk_sockopt_t *)&real_error_code, &len);
+    if (getsockopt_err != 0) {
+        return -1;
+    }
+    if (real_error_code != 0) {
+        MOCK_set_last_error(real_error_code);
+        return -1;
+    }
+    return 0;
 }
 
 int Context::mk_ioctlsocket(
