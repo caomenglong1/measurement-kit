@@ -36,4 +36,4 @@ void Context::MOCK_set_last_error(int error_code) noexcept {
 
 } // namespace portable
 } // namespace mk
-#endif // MEASUREMENT_KIT_PORTABLE_CONTEXT_HPP
+#endif // MEASUREMENT_KIT_PORTABLE_IMPL_ERRNO_HPP
