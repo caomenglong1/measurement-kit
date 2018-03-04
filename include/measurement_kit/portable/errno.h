@@ -5,7 +5,7 @@
 #define MEASUREMENT_KIT_PORTABLE_ERRNO_H
 
 #ifdef _WIN32
-#include <Winerr.h>
+#include <Winerror.h>
 #else
 #include <errno.h>
 #endif
