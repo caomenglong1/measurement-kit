@@ -77,9 +77,9 @@ int Context::do_ioctlsocket(
         MOCK_set_last_error(MK_EINVAL);
         return -1;
     }
+    assert(command == MK_FIONBIO);
     int rv = MOCK_ioctlsocket(sock, command, argument);
     if (rv == 0) {
-        assert(command == MK_FIONBIO);
         sockets_.at(sock) |= MK_F_NONBLOCK;
     }
     return rv;
