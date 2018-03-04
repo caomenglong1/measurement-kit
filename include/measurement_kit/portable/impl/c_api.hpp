@@ -40,6 +40,12 @@ int mk_ioctlsocket(
     return CTX->mk_ioctlsocket(sock, command, argument);
 }
 
+int mk_getsockopt(mk_socket_t sock, int level, int option_name,
+        mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept {
+    return CTX->mk_getsockopt(
+            sock, level, option_name, option_value, option_len);
+}
+
 mk_ssize_t mk_recv(mk_socket_t sock, void *buffer, mk_size_t length,
         int recv_flags) noexcept {
     return CTX->mk_recv(sock, buffer, length, recv_flags);

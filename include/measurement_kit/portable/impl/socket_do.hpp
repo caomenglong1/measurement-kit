@@ -67,6 +67,15 @@ int Context::mk_ioctlsocket(
     return rv;
 }
 
+int Context::mk_getsockopt(mk_socket_t sock, int level, int option_name,
+        mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept {
+    if (sockets_.count(sock) == 0) {
+        MOCK_set_last_error(MK_EINVAL);
+        return -1;
+    }
+    return MOCK_getsockopt(sock, level, option_name, option_value, option_len);
+}
+
 mk_ssize_t Context::mk_recv(mk_socket_t sock, void *buffer, mk_size_t length,
         int recv_flags) noexcept {
     if (sockets_.count(sock) == 0) {

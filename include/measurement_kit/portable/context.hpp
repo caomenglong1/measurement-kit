@@ -72,6 +72,12 @@ class Context {
     virtual int mk_ioctlsocket(
             mk_socket_t sock, long command, unsigned long *argument) noexcept;
 
+    virtual int MOCK_getsockopt(mk_socket_t sock, int level, int option_name,
+            mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept;
+
+    virtual int mk_getsockopt(mk_socket_t sock, int level, int option_name,
+            mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept;
+
     virtual mk_ssize_t MOCK_recv(mk_socket_t sock, void *buffer,
             mk_size_t length, int recv_flags) noexcept;
 

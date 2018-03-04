@@ -67,6 +67,13 @@ int Context::MOCK_ioctlsocket(
 #endif
 }
 
+int Context::MOCK_getsockopt(mk_socket_t sock, int level, int option_name,
+        mk_sockopt_t *option_value, mk_socklen_t *option_len) noexcept {
+    auto rv = ::getsockopt(sock, level, option_name, option_value, option_len);
+    assert(rv >= -1);
+    return rv;
+}
+
 mk_ssize_t Context::MOCK_recv(mk_socket_t sock, void *buffer, mk_size_t length,
         int recv_flags) noexcept {
 #ifdef _WIN32 // Windows uses `int`
